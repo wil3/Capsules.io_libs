@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- For buttons in the row to be clickable, the focus on buttons must be false 
+and  android:descendantFocusability="blocksDescendants" must be set for the root view-->
+<LinearLayout 
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+    	android:orientation="vertical"
+    	    
+    >
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+
+
+    <!-- Allow image to slide in here -->
+    <io.capsules.SlideContainer
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="0dp"
+        >
+        <!--
+                <LinearLayout
+                    android:id="@+id/slide"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentLeft="true"
+                    android:layout_marginLeft="100dp"
+                    >
+
+                    <LinearLayout
+                        android:id="@+id/obj"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:background="#00F"
+                        android:orientation="vertical"/>
+
+                <ImageView
+                    android:id="@+id/icon"
+                    android:src="@drawable/ic_capsule_allupgrades_map"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="0dp"
+
+                    />
+
+
+                </LinearLayout> -->
+
+
+        <include layout="@layout/draggable_view"/>
+    </io.capsules.SlideContainer>
+
+
+    </RelativeLayout>
+
+</LinearLayout>
