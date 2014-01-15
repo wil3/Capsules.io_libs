@@ -22,7 +22,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CapsuleDropperActivity extends Activity implements View.OnTouchListener {
+public class DropperActivity extends Activity implements View.OnTouchListener {
 
     public static final String DROPPING_CAPSULE = "DROPPING";
     public static final String EXTRA_CAPSULE = "EXTRA_CAPSULE";
@@ -35,7 +35,7 @@ public class CapsuleDropperActivity extends Activity implements View.OnTouchList
     private int _xDelta;
     private int _yDelta;
     private BroadcastReceiver mReceiver = new MyBroadcastReceiver();
-    List<CapsuleHeader> capsules = new ArrayList<CapsuleHeader>();
+    List<DraggableItem> items = new ArrayList<DraggableItem>();
     DropArrayAdapter mAdapter;
 
     private Handler mHandler = new Handler();
@@ -44,7 +44,7 @@ public class CapsuleDropperActivity extends Activity implements View.OnTouchList
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.capsuledropper_activity);
+        setContentView(R.layout.dropper_activity);
 
         mDragOverlayView = (DragContainer)findViewById(R.id.container);
 
@@ -69,13 +69,12 @@ public class CapsuleDropperActivity extends Activity implements View.OnTouchList
     }
 
     private void initListView(){
-        ListView list = (ListView)findViewById(R.id.list_carrying_capsules);
+        ListView list = (ListView)findViewById(R.id.list_drop_candidates);
 
         for (int i=0; i<10;i++){
-            capsules.add(new CapsuleHeader());
         }
 
-        mAdapter = new DropArrayAdapter(this,R.layout.listitem, capsules);
+       // mAdapter = new DropArrayAdapter(this,R.layout.listitem, );
 
         list.setAdapter(mAdapter);
 
@@ -188,7 +187,7 @@ public class CapsuleDropperActivity extends Activity implements View.OnTouchList
             Log.d(getClass().getSimpleName(), "Dropping capsule");
             int pos = intent.getIntExtra(EXTRA_CAPSULE, -1);
             if (pos != -1){
-                capsules.remove(pos);
+                items.remove(pos);
                 mAdapter.notifyDataSetChanged();
 
 

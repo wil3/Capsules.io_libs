@@ -10,12 +10,16 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.RelativeLayout;
 
 /**
  * Created by wil on 1/14/14.
  */
 public class DropperView extends RelativeLayout {
+
+    private static final String TAG_LIST = "listView";
     private View mDragView;
     private int mXDelta;
 
@@ -27,6 +31,10 @@ public class DropperView extends RelativeLayout {
 
     private float mInitialMotionX;
     private float mInitialMotionY;
+
+
+    private ListView mListView;
+    private ListAdapter mListAdapter;
 
 
 
@@ -56,7 +64,9 @@ public class DropperView extends RelativeLayout {
     protected void onFinishInflate() {
 
         mDragView = findViewWithTag("dragView");
-       // RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams)mDragView.getLayoutParams();
+        mListView = (ListView)findViewWithTag(TAG_LIST);
+
+            // RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams)mDragView.getLayoutParams();
 
 
        // lParams.leftMargin = mDisplayWidth - 20;
@@ -71,7 +81,35 @@ public class DropperView extends RelativeLayout {
 
 
         //relative to parent
-        mDragView.layout(getWidth()-20, t,  r + mDragView.getMeasuredWidth(), t + mDragView.getMeasuredHeight());
+
+        final int paddingLeft = getPaddingLeft();
+        final int paddingTop = getPaddingTop();
+
+        final int childCount = getChildCount();
+
+
+        for (int i = 0; i < childCount; i++) {
+            final View child = getChildAt(i);
+
+            if (child.getVisibility() == GONE) {
+                continue;
+            }
+
+            if (child.equals(mDragView)){
+                mDragView.layout(getWidth(), t,  r + mDragView.getMeasuredWidth(), t + mDragView.getMeasuredHeight());
+
+            } else {
+                final LayoutParams lp = (LayoutParams) child.getLayoutParams();
+                final int childHeight = child.getMeasuredHeight();
+
+                final int childTop =  paddingTop;
+                final int childBottom = childTop + childHeight;
+                final int childLeft = paddingLeft;
+                final int childRight = childLeft + child.getMeasuredWidth();
+
+                child.layout(childLeft, childTop, childRight, childBottom);
+            }
+        }
     }
 
     @Override
@@ -383,6 +421,10 @@ public class DropperView extends RelativeLayout {
 
     }
 
+
+    private void setAdapter(ListAdapter adapter){
+        mListAdapter = adapter;
+    }
 
 
     }

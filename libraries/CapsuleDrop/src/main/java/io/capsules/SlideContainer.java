@@ -5,11 +5,9 @@ import android.content.Intent;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.view.MotionEventCompat;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.WindowManager;
 import android.widget.RelativeLayout;
 
 /**
@@ -81,12 +79,12 @@ public class SlideContainer extends RelativeLayout {
     private void dispatchCapsuleSelected(MotionEvent ev) {
         Log.d(getClass().getName(), "Dispatching capsule selected ");
         Intent broadcastIntent = new Intent();
-        broadcastIntent.setAction(CapsuleDropperActivity.DROPPING_CAPSULE);
-        broadcastIntent.putExtra(CapsuleDropperActivity.EXTRA_CAPSULE, (Integer) getTag());// includes the position in the array of capsules
-        broadcastIntent.putExtra(CapsuleDropperActivity.EXTRA_X, mLastDragX);
-        broadcastIntent.putExtra(CapsuleDropperActivity.EXTRA_Y, mLastDragY);
+        broadcastIntent.setAction(DropperActivity.DROPPING_CAPSULE);
+        broadcastIntent.putExtra(DropperActivity.EXTRA_CAPSULE, (Integer) getTag());// includes the position in the array of capsules
+        broadcastIntent.putExtra(DropperActivity.EXTRA_X, mLastDragX);
+        broadcastIntent.putExtra(DropperActivity.EXTRA_Y, mLastDragY);
 
-        broadcastIntent.putExtra(CapsuleDropperActivity.EXTRA_MOTION_EVENT, ev);
+        broadcastIntent.putExtra(DropperActivity.EXTRA_MOTION_EVENT, ev);
         LocalBroadcastManager.getInstance(getContext()).sendBroadcast(broadcastIntent);
 
     }

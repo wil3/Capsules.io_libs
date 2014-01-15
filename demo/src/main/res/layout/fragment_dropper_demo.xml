@@ -1,7 +1,7 @@
 
-
     <io.capsules.DropperView
         xmlns:android="http://schemas.android.com/apk/res/android"
+
         android:layout_width="match_parent"
         android:layout_height="match_parent"
 
@@ -21,14 +21,26 @@
 
 
 
+
+
         <RelativeLayout
             android:tag="dragView"
             android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_height="match_parent"
             android:background="#CCC"
             >
-
+            <ListView
+                android:tag="listView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentRight="true"
+                android:background="#0FF"
+                ></ListView>
         </RelativeLayout>
 
-</io.capsules.DropperView>
+
+
+
+    </io.capsules.DropperView>
 
