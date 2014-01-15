@@ -1,11 +1,11 @@
 package io.capsules.android.lib.demo;
 
-import io.capsules.DraggableItem;
+import io.capsules.DropCandidate;
 
 /**
  * Created by wil on 1/15/14.
  */
-public class ColoredBoxDraggableItem  implements DraggableItem{
+public class ColoredBoxDropCandidate implements DropCandidate {
     String mLabel;
     @Override
     public String getLabel() {

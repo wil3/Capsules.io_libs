@@ -10,7 +10,13 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.os.Build;
+import android.widget.ListAdapter;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import io.capsules.DropArrayAdapter;
+import io.capsules.DropCandidate;
 import io.capsules.DropperView;
 
 public class DropperDemoActivity extends FragmentActivity {
@@ -59,9 +65,25 @@ public class DropperDemoActivity extends FragmentActivity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                 Bundle savedInstanceState) {
-            DropperView rootView = (DropperView)inflater.inflate(R.layout.fragment_dropper_demo, container, false);
+            DropperView dropperView = (DropperView)inflater.inflate(R.layout.fragment_dropper_demo, container, false);
 
-            return rootView;
+            ListAdapter adapter = new DropArrayAdapter(getActivity().getApplicationContext(),R.layout.listitem_colored_box, getListItems());
+
+            dropperView.setAdapter(adapter);
+
+            return dropperView;
+        }
+
+
+        private List<DropCandidate> getListItems(){
+
+            List<DropCandidate>  items = new ArrayList<DropCandidate>();
+            for (int i=0; i< 20;i++){
+                DropCandidate dc = new ColoredBoxDropCandidate();
+                dc.setLabel("Label " + i);
+                items.add(dc);
+            }
+            return items;
         }
     }
 
