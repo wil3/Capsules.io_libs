@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">Capsules.io Libs</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <string-array name="libraries">
+        <item>Color editor</item>
+        <item>Dropper</item>
+    </string-array>
+
+    <string name="title_activity_dropper_demo">DropperDemoActivity</string>
+
+</resources>
