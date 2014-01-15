@@ -422,7 +422,7 @@ public class DropperView extends RelativeLayout {
     }
 
 
-    private void setAdapter(ListAdapter adapter){
+    public void setAdapter(ListAdapter adapter){
         mListAdapter = adapter;
     }
 

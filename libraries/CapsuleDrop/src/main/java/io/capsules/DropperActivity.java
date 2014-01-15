@@ -35,7 +35,7 @@ public class DropperActivity extends Activity implements View.OnTouchListener {
     private int _xDelta;
     private int _yDelta;
     private BroadcastReceiver mReceiver = new MyBroadcastReceiver();
-    List<DraggableItem> items = new ArrayList<DraggableItem>();
+    List<DropCandidate> items = new ArrayList<DropCandidate>();
     DropArrayAdapter mAdapter;
 
     private Handler mHandler = new Handler();

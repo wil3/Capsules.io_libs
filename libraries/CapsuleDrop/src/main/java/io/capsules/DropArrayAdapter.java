@@ -1,16 +1,13 @@
 package io.capsules;
 
-import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
-import android.support.v4.view.MotionEventCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -20,11 +17,11 @@ import java.util.List;
 
 
 
-public class DropArrayAdapter extends ArrayAdapter<CapsuleHeader> {
+public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 
 	private Context mContext;
 	private int mViewResourceId;
-	private List<CapsuleHeader> mObjects;
+	private List<DropCandidate> mObjects;
 	//protected ImageLoader imageLoader = ImageLoader.getInstance();
 	private TextView mBtnSize;
     private int _xDelta;
@@ -35,27 +32,27 @@ public class DropArrayAdapter extends ArrayAdapter<CapsuleHeader> {
 
     private View _root;
 	
-	public DropArrayAdapter(Context context, int viewResourceId, List<CapsuleHeader> objects){
+	public DropArrayAdapter(Context context, int viewResourceId, List<DropCandidate> objects){
 		super(context, viewResourceId, objects);
 		this.mContext = context;
 		this.mViewResourceId = viewResourceId;
 		this.mObjects = objects;
 	}
 
-	   CapsuleHolder holder = null;
+	   DropCandidateHolder holder = null;
 
 	   @Override
 	    public View getView(int position, View convertView, ViewGroup parent) {
 		   
 		   View row = convertView;
-		   final CapsuleHeader capsule = mObjects.get(position);
+		   final DropCandidate capsule = mObjects.get(position);
 			   LayoutInflater inflater = LayoutInflater.from(mContext);
 
 		   if (row == null){
 			   row = inflater.inflate(mViewResourceId, parent, false);
 			   
 			   
-			   holder = new CapsuleHolder();
+			   holder = new DropCandidateHolder();
 			  // holder.textName = (TextView)row.findViewById(R.id.text_capsule_title);
 			   holder.imageIcon = (ImageView)row.findViewById(R.id.icon);
                 holder.slideView = row.findViewById(R.id.slide);
@@ -65,7 +62,7 @@ public class DropArrayAdapter extends ArrayAdapter<CapsuleHeader> {
 			   row.setTag(holder);
 			   
 		   } else {
-			   holder = (CapsuleHolder)row.getTag();
+			   holder = (DropCandidateHolder)row.getTag();
 		   }
 
            holder.slideContainer.setBackgroundColor(Color.argb(255, position * 50, position * 10, position * 50));
@@ -136,7 +133,7 @@ public class DropArrayAdapter extends ArrayAdapter<CapsuleHeader> {
 	 * @author wil
 	 *
 	 */
-	static class CapsuleHolder {
+	static class DropCandidateHolder {
 		
 		//TextView textName;
 		ImageView imageIcon;
