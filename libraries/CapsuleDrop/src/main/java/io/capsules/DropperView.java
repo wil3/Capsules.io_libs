@@ -23,6 +23,16 @@ public class DropperView extends RelativeLayout {
 
     private int mDisplayWidth;
 
+    private int mDragRange;
+
+    private float mInitialMotionX;
+    private float mInitialMotionY;
+
+
+
+
+
+
     public DropperView(Context context) {
         this(context, null);
     }
@@ -129,25 +139,111 @@ public class DropperView extends RelativeLayout {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         final int action = MotionEventCompat.getActionMasked(ev);
+
+
         if (action == MotionEvent.ACTION_CANCEL || action == MotionEvent.ACTION_UP) {
             mDragHelper.cancel();
             return false;
         }
-        return mDragHelper.shouldInterceptTouchEvent(ev);
+
+
+
+        final float x = ev.getX();
+        final float y = ev.getY();
+        boolean interceptTap = false;
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN: {
+                mInitialMotionX = x;
+                mInitialMotionY = y;
+                interceptTap = mDragHelper.isViewUnder(mDragView, (int) x, (int) y);
+                break;
+            }
+
+            case MotionEvent.ACTION_MOVE: {
+                final float adx = Math.abs(x - mInitialMotionX);
+                final float ady = Math.abs(y - mInitialMotionY);
+                final int slop = mDragHelper.getTouchSlop();
+                //check out the slop, if change too great cancel.
+                // if the vertical change is greater than the horizontal change also cancel
+                if (adx > slop && ady > adx) {
+                    mDragHelper.cancel();
+                    return false;
+                }
+            }
+        }
+
+        //return true to intercept
+        return mDragHelper.shouldInterceptTouchEvent(ev);// || interceptTap;
     }
 
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        //    Log.d(TAG, "On touch ");
 //        Log.d(TAG, "On touch x=" + ev.getX() + " y=" + ev.getY());
-
 
 
         mDragHelper.processTouchEvent(ev);
 
-        return true;
+        final int action = ev.getAction();
+        final float x = ev.getX();
+        final float y = ev.getY();
 
+        boolean isViewUnder = mDragHelper.isViewUnder(mDragView, (int) x, (int) y);
+
+
+        switch (action & MotionEventCompat.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN: {
+                mInitialMotionX = x;
+                mInitialMotionY = y;
+                break;
+            }
+
+            case MotionEvent.ACTION_UP: {
+                //We wamt to close when up
+                final float dx = x - mInitialMotionX;
+                final float dy = y - mInitialMotionY;
+                final int slop = mDragHelper.getTouchSlop();
+
+                Log.d(getClass().getName(), "On touch under? " + isViewUnder + " dx " + dx + " dy " + dy + " slop " + slop);
+
+             //   if (dx * dx + dy * dy < slop * slop && isViewUnder) {
+                  //  if (isViewUnder){
+                    Log.d(getClass().getName(), "On touch, slide to ");
+
+                    smoothSlideTo(1f);
+
+                //}
+                break;
+            }
+        }
+
+        //true if event handled
+        return true;//isViewUnder && isViewHit(mDragView, (int) x, (int) y) ;
+
+
+    }
+    boolean smoothSlideTo(float slideOffset) {
+        final int leftBound = getWidth();
+
+        int x = (int) (leftBound + slideOffset * mDragRange);
+
+        if (mDragHelper.smoothSlideViewTo(mDragView, leftBound, mDragView.getTop())) {
+            ViewCompat.postInvalidateOnAnimation(this);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isViewHit(View view, int x, int y) {
+        int[] viewLocation = new int[2];
+        view.getLocationOnScreen(viewLocation);
+        int[] parentLocation = new int[2];
+        this.getLocationOnScreen(parentLocation);
+        int screenX = parentLocation[0] + x;
+        int screenY = parentLocation[1] + y;
+        return screenX >= viewLocation[0] && screenX < viewLocation[0] + view.getWidth() &&
+                screenY >= viewLocation[1] && screenY < viewLocation[1] + view.getHeight();
     }
 
     /*
@@ -212,36 +308,49 @@ public class DropperView extends RelativeLayout {
     private class DragHelperCallback extends ViewDragHelper.Callback {
 
 
-        @Override
-        public void onViewDragStateChanged(int state) {
-            Log.d(getClass().getName(), "onViewDraggedState");
-
-        }
-
 
         @Override
         public void onViewCaptured(View capturedChild, int activePointerId) {
             Log.d(getClass().getName(), "onViewCaptured");
 
         }
+        @Override
+        public int getViewHorizontalDragRange(View child){
+            Log.d(getClass().getName(),"w = " + mDragView.getWidth());
+            return mDragView.getWidth();
+        }
+        @Override
+        public void onEdgeTouched(int edgeFlags, int pointerId) {
+            Log.d(getClass().getName(),"Edget touched");
+
+            super.onEdgeTouched(edgeFlags, pointerId);
+        }
+
         public void onEdgeDragStarted(int edgeFlags, int pointerId) {
+            Log.d(getClass().getName(),"Edge drag start");
+
             mDragHelper.captureChildView(mDragView, pointerId);
         }
 
 
         /**
+         *
+         * @param releasedChild
+         * @param xvel
+         * @param yvel
+         */
         @Override
         public void onViewReleased(View releasedChild, float xvel, float yvel) {
 
 
             int top = getPaddingTop();
 
-            Log.d(getClass().getName(), "onViewRelease  l=" + mDisplayWidth + " t=" + top);
+            Log.d(getClass().getName(), "onViewRelease  l=" + getWidth() + " t=" + top);
 
-            mDragHelper.settleCapturedViewAt(mDisplayWidth, top);
+            mDragHelper.settleCapturedViewAt(getWidth(), top);
 
         }
-*/
+
         @Override
         public void onViewPositionChanged(View changedView, int left, int top, int dx, int dy) {
             //Without invalidate the view leaves a black trail
