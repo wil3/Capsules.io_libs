@@ -48,8 +48,9 @@ and  android:descendantFocusability="blocksDescendants" must be set for the root
                     />
 
 
-                </LinearLayout> -->
+                </LinearLayout>
 
+-->
 
         <include layout="@layout/draggable_view"/>
     </io.capsules.SlideContainer>

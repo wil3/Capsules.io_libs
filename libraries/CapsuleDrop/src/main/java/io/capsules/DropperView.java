@@ -1,6 +1,7 @@
 package io.capsules;
 
 import android.content.Context;
+import android.os.Handler;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v4.widget.ViewDragHelper;
@@ -9,6 +10,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -19,8 +21,16 @@ import android.widget.RelativeLayout;
  */
 public class DropperView extends RelativeLayout {
 
+    private enum ScrollingState {
+        STATE_SCROLLING_IDLE,
+        STATE_SCROLLING_DOWN,
+        STATE_SCROLLING_UP
+
+    }
     private static final String TAG_LIST = "listView";
-    private View mDragView;
+
+    private ScrollingState mScrollingState = ScrollingState.STATE_SCROLLING_IDLE;
+    private ViewGroup mDragView;
     private int mXDelta;
 
     private final ViewDragHelper mDragHelper;
@@ -36,9 +46,13 @@ public class DropperView extends RelativeLayout {
     private ListView mListView;
     private ListAdapter mListAdapter;
 
+    private int mLastLeftPosition;
 
 
+    private View mScrolldownView;
 
+
+    private Handler mHandler = new Handler();
 
 
     public DropperView(Context context) {
@@ -63,8 +77,12 @@ public class DropperView extends RelativeLayout {
         @Override
     protected void onFinishInflate() {
 
-        mDragView = findViewWithTag("dragView");
+        mDragView = (ViewGroup)findViewWithTag("dragView");
         mListView = (ListView)findViewWithTag(TAG_LIST);
+
+            mScrolldownView = findViewWithTag("scrolldown");
+       // mListView.setFastScrollAlwaysVisible(true);
+       // mListView.setVerticalScrollbarPosition(View.SCROLLBAR_POSITION_LEFT);
 
             // RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams)mDragView.getLayoutParams();
 
@@ -79,6 +97,7 @@ public class DropperView extends RelativeLayout {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
 
 
+        mLastLeftPosition = getWidth();
 
         //relative to parent
 
@@ -97,6 +116,16 @@ public class DropperView extends RelativeLayout {
 
             if (child.equals(mDragView)){
                 mDragView.layout(getWidth(), t,  r + mDragView.getMeasuredWidth(), t + mDragView.getMeasuredHeight());
+
+
+            } else if (child.equals(mScrolldownView)){
+
+                final int childTop =  getHeight() - paddingTop - child.getMeasuredHeight();
+                final int childBottom = getHeight();
+                final int childLeft = getWidth() - child.getMeasuredWidth();
+                final int childRight =  getWidth();
+                child.layout(childLeft, childTop, childRight, childBottom);
+
 
             } else {
                 final LayoutParams lp = (LayoutParams) child.getLayoutParams();
@@ -119,7 +148,7 @@ public class DropperView extends RelativeLayout {
         }
     }
 
-    public void setDragView(View view){
+    public void setDragView(ViewGroup view){
 
         mDragView = view;
 
@@ -202,6 +231,12 @@ public class DropperView extends RelativeLayout {
                 final float adx = Math.abs(x - mInitialMotionX);
                 final float ady = Math.abs(y - mInitialMotionY);
                 final int slop = mDragHelper.getTouchSlop();
+
+                int findX = getWidth() - (mDragView.getWidth() / 2);
+                View v = mDragHelper.findTopChildUnder(findX,(int)y);
+                Log.d(getClass().getName(), "On touch x=" + ev.getX() + " y=" + ev.getY() + " view = " + v);
+
+
                 //check out the slop, if change too great cancel.
                 // if the vertical change is greater than the horizontal change also cancel
                 if (adx > slop && ady > adx) {
@@ -229,6 +264,7 @@ public class DropperView extends RelativeLayout {
 
         boolean isViewUnder = mDragHelper.isViewUnder(mDragView, (int) x, (int) y);
 
+        boolean isMovingHorizontally = true;
 
         switch (action & MotionEventCompat.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN: {
@@ -254,12 +290,74 @@ public class DropperView extends RelativeLayout {
                 //}
                 break;
             }
+            case MotionEvent.ACTION_MOVE: {
+
+                int findX = getWidth() - (mDragView.getWidth() / 2);
+                View v = mDragHelper.findTopChildUnder((int)x,(int)y);
+                Log.d(getClass().getName(), "On touch x=" + ev.getX() + " y=" + ev.getY() + " view = " + v);
+
+                if (v.getTag() != null){
+                    String tag = (String)v.getTag();
+                    if (tag.equals("scrolldown")){
+                        Log.d(getClass().getName(),"Scroll down...");
+
+                        //If we are not already scrolling...
+                        if (mScrollingState != ScrollingState.STATE_SCROLLING_DOWN){
+                            mScrollingState = ScrollingState.STATE_SCROLLING_DOWN;
+                            //Keep scrolling until we are out
+
+                            mScrollPosition =0;
+                            scrollDown();
+                        }
+                    } else {
+                        mScrollingState = ScrollingState.STATE_SCROLLING_IDLE;
+                    }
+                } else {
+                    mScrollingState = ScrollingState.STATE_SCROLLING_IDLE;
+
+                }
+
+
+                prepareCandidateForDrop((int)x, (int)y);
+
+                final float dx = x - mInitialMotionX;
+                final float dy = y - mInitialMotionY;
+
+
+                if (dy > dx) {
+                    isMovingHorizontally = false;
+                }
+
+
+                break;
+            }
         }
 
         //true if event handled
         return true;//isViewUnder && isViewHit(mDragView, (int) x, (int) y) ;
 
 
+    }
+
+    private void prepareCandidateForDrop(int x, int y){
+       int pos = getListItemPosition(getWidth()-20,y);
+        Log.d(getClass().getName(), "List item " + pos);
+    }
+
+    private int mScrollPosition =0;
+    private void scrollDown(){
+
+        if (mScrollingState == ScrollingState.STATE_SCROLLING_DOWN && mScrollPosition < mListAdapter.getCount()){
+
+            mListView.smoothScrollToPosition(mScrollPosition++);
+
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scrollDown();
+                }
+            }, 100);
+        }
     }
     boolean smoothSlideTo(float slideOffset) {
         final int leftBound = getWidth();
@@ -282,6 +380,31 @@ public class DropperView extends RelativeLayout {
         int screenY = parentLocation[1] + y;
         return screenX >= viewLocation[0] && screenX < viewLocation[0] + view.getWidth() &&
                 screenY >= viewLocation[1] && screenY < viewLocation[1] + view.getHeight();
+    }
+
+    private int getListItemPosition(int x, int y){
+        final int childCount = mListView.getChildCount();
+        for (int i = 0; i<childCount; i++) {
+            final View child = mListView.getChildAt(i);
+
+            DisplayMetrics dm = new DisplayMetrics();
+            ((WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getMetrics(dm);
+            int topOffset = dm.heightPixels - getMeasuredHeight();
+
+            int [] location  = new int[2];
+            child.getLocationInWindow(location);
+            final int left = location[0];
+            final int right = location[0] + child.getWidth();
+            final int top = location[1]-topOffset;
+            final int bottom = top + child.getHeight();
+
+            Log.d(getClass().getName()  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
+            if (x >= left && x < right &&
+                    y >= top && y < bottom) {
+                return ((DropArrayAdapter.DropCandidateHolder)child.getTag()).position;
+            }
+        }
+        return -1;
     }
 
     /*
@@ -361,7 +484,11 @@ public class DropperView extends RelativeLayout {
         public void onEdgeTouched(int edgeFlags, int pointerId) {
             Log.d(getClass().getName(),"Edget touched");
 
-            super.onEdgeTouched(edgeFlags, pointerId);
+            //Makes it so it can slide out
+           if ( mDragHelper.smoothSlideViewTo(mDragView, getWidth()-mDragView.getWidth()/2, 0)){
+               ViewCompat.postInvalidateOnAnimation(getRootView());
+           }
+            //super.onEdgeTouched(edgeFlags, pointerId);
         }
 
         public void onEdgeDragStarted(int edgeFlags, int pointerId) {
@@ -405,15 +532,21 @@ public class DropperView extends RelativeLayout {
         @Override
         public int clampViewPositionHorizontal(View child, int left, int dx) {
 
-            Log.d(getClass().getName(), "clampViewPositionHorizontal " + left + "," + dx);
+            //Log.d(getClass().getName(), "clampViewPositionHorizontal " + left + "," + dx);
+            int newLeft;
+            if (dx <= 0){ //only move to the left
 
-            final int leftBound = getWidth()-mDragView.getWidth();//getPaddingLeft();
+                final int leftBound = getWidth()-mDragView.getWidth();//getPaddingLeft();
 
+                final int rightBound = getWidth();// - mDragView.getWidth();
 
-            final int rightBound = getWidth();// - mDragView.getWidth();
+                newLeft = Math.min(Math.max(left, leftBound), rightBound);
 
-            final int newLeft = Math.min(Math.max(left, leftBound), rightBound);
+                mLastLeftPosition = newLeft;
 
+            } else {
+                newLeft = mLastLeftPosition;
+            }
             return newLeft;
 
         }
@@ -424,6 +557,7 @@ public class DropperView extends RelativeLayout {
 
     public void setAdapter(ListAdapter adapter){
         mListAdapter = adapter;
+        mListView.setAdapter(mListAdapter);
     }
 
 

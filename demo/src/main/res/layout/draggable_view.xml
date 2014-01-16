@@ -32,6 +32,7 @@
         android:id="@+id/obj"
         android:layout_width="50dp"
         android:layout_height="50dp"
+        android:layout_marginLeft="50dp"
         android:background="#EEE"
         android:orientation="vertical"
         android:layout_gravity="center"

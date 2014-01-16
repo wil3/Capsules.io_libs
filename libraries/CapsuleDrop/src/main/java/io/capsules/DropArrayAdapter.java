@@ -54,10 +54,10 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 			   
 			   holder = new DropCandidateHolder();
 			  // holder.textName = (TextView)row.findViewById(R.id.text_capsule_title);
-			   holder.imageIcon = (ImageView)row.findViewById(R.id.icon);
-                holder.slideView = row.findViewById(R.id.slide);
+			 //  holder.imageIcon = (ImageView)row.findViewById(R.id.icon);
+               holder.slideView = row.findViewById(R.id.slide);
                holder.slideContainer = row.findViewById(R.id.obj);
-
+                holder.textLabel = (TextView)row.findViewById(R.id.text_label);
 
 			   row.setTag(holder);
 			   
@@ -65,16 +65,18 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 			   holder = (DropCandidateHolder)row.getTag();
 		   }
 
+          holder.position = position;
+
+           holder.textLabel.setText("(" + position + ")");
            holder.slideContainer.setBackgroundColor(Color.argb(255, position * 50, position * 10, position * 50));
 
            //mDragOverlayView = row.findViewById(R.id.container);
 			//holder.textName.setText(capsule.getName());
 
-           SlideContainer container = (SlideContainer)row.findViewById(R.id.container);
-           container.setTag(position);
-           container.setDragView(holder.slideView);
+//           SlideContainer container = (SlideContainer)row.findViewById(R.id.container);
+ //          container.setTag(position);
+   //        container.setDragView(holder.slideView);
           // holder.slideView.setTag();
-
 
            /**
             * Listen for touch events, this view can slide horizontally
@@ -84,6 +86,8 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
                public boolean onTouch(View view, MotionEvent motionEvent) {
                    final int X = (int) motionEvent.getRawX();
                    final int Y = (int) motionEvent.getRawY();
+
+                   Log.d(getClass().getName(), "List item touched");
 
                    View parent = (View)view.getTag();
 
@@ -133,9 +137,9 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 	 * @author wil
 	 *
 	 */
-	static class DropCandidateHolder {
-		
-		//TextView textName;
+	public static class DropCandidateHolder {
+		int position;
+		TextView textLabel;
 		ImageView imageIcon;
         View slideView;
         View slideContainer;
