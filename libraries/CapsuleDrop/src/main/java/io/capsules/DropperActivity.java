@@ -36,7 +36,8 @@ public class DropperActivity extends Activity implements View.OnTouchListener {
     private int _yDelta;
     private BroadcastReceiver mReceiver = new MyBroadcastReceiver();
     List<DropCandidate> items = new ArrayList<DropCandidate>();
-    DropArrayAdapter mAdapter;
+
+    //DropArrayAdapter mAdapter;
 
     private Handler mHandler = new Handler();
 
@@ -76,7 +77,7 @@ public class DropperActivity extends Activity implements View.OnTouchListener {
 
        // mAdapter = new DropArrayAdapter(this,R.layout.listitem, );
 
-        list.setAdapter(mAdapter);
+       // list.setAdapter(mAdapter);
 
     }
 
@@ -120,7 +121,7 @@ public class DropperActivity extends Activity implements View.OnTouchListener {
     */
     private void addDraggedViewToOverlay(final MotionEvent ev,int x, int y){
         LayoutInflater inflater = getLayoutInflater();
-        final View view = inflater.inflate(R.layout.draggable_view, null);
+        final View view = null;//inflater.inflate();//R.layout.draggable_view, null);
 
         DisplayMetrics dm = new DisplayMetrics();
         this.getWindowManager().getDefaultDisplay().getMetrics(dm);
@@ -188,7 +189,7 @@ public class DropperActivity extends Activity implements View.OnTouchListener {
             int pos = intent.getIntExtra(EXTRA_CAPSULE, -1);
             if (pos != -1){
                 items.remove(pos);
-                mAdapter.notifyDataSetChanged();
+               // mAdapter.notifyDataSetChanged();
 
 
                 int x = intent.getIntExtra(EXTRA_X, -1);

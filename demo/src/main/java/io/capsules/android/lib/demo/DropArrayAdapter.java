@@ -1,4 +1,4 @@
-package io.capsules;
+package io.capsules.android.lib.demo;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -15,6 +15,7 @@ import android.widget.TextView;
 
 import java.util.List;
 
+import io.capsules.*;
 
 
 public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
@@ -55,7 +56,7 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 			   holder = new DropCandidateHolder();
 			  // holder.textName = (TextView)row.findViewById(R.id.text_capsule_title);
 			 //  holder.imageIcon = (ImageView)row.findViewById(R.id.icon);
-               holder.slideView = row.findViewById(R.id.slide);
+              // holder.slideView = row.findViewById(R.id.slide);
                holder.slideContainer = row.findViewById(R.id.obj);
                 holder.textLabel = (TextView)row.findViewById(R.id.text_label);
 
@@ -80,7 +81,7 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 
            /**
             * Listen for touch events, this view can slide horizontally
-            */
+
            holder.slideView.setOnTouchListener(new View.OnTouchListener() {
                @Override
                public boolean onTouch(View view, MotionEvent motionEvent) {
@@ -123,7 +124,7 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
                    return true;
                }
            });
-
+            */
 			//imageLoader.displayImage(capsule.getThumbnail(), holder.imageIcon, Constants.OPTIONS_IMAGE_LOADER);
 		
 		   return row;
@@ -141,7 +142,7 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 		int position;
 		TextView textLabel;
 		ImageView imageIcon;
-        View slideView;
+      //  View slideView;
         View slideContainer;
 	}
 	

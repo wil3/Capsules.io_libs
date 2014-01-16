@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.capsules.android.lib.demo"
-
-    >
+    package="io.capsules.android.lib.demo" >
 
     <uses-sdk
         android:minSdkVersion="14"
@@ -12,30 +10,27 @@
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
-        android:theme="@android:style/Theme.Light"
-        >
+        android:theme="@android:style/Theme.Light" >
         <activity
             android:name="io.capsules.android.lib.demo.DemoActivity"
             android:label="@string/app_name" >
         </activity>
         <activity android:name="io.capsules.lib.ColorEditorActivity" >
         </activity>
-
-
         <activity android:name="io.capsules.DropperActivity" >
-
         </activity>
-
-
         <activity
             android:name="io.capsules.android.lib.demo.DropperDemoActivity"
             android:label="@string/title_activity_dropper_demo" >
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity
+            android:name="io.capsules.android.lib.demo.DropSwitchDemoActivity"
+            android:label="@string/title_activity_drop_switch_demo" >
         </activity>
     </application>
 

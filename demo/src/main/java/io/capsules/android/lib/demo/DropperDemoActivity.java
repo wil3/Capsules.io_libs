@@ -9,13 +9,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.os.Build;
 import android.widget.ListAdapter;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import io.capsules.DropArrayAdapter;
 import io.capsules.DropCandidate;
 import io.capsules.DropperView;
 
