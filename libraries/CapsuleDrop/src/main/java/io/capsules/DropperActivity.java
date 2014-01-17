@@ -157,7 +157,7 @@ public class DropperActivity extends Activity implements View.OnTouchListener {
             @Override
             public void run() {
 
-                //view.dispatchTouchEvent(newEv);
+                view.dispatchTouchEvent(newEv);
             }
         }, 500);
 

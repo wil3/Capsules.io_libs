@@ -32,15 +32,15 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
     private int targetLeft = 50;
 
     private View _root;
-	
-	public DropArrayAdapter(Context context, int viewResourceId, List<DropCandidate> objects){
+    DropCandidateHolder holder = null;
+
+    public DropArrayAdapter(Context context, int viewResourceId, List<DropCandidate> objects){
 		super(context, viewResourceId, objects);
 		this.mContext = context;
 		this.mViewResourceId = viewResourceId;
 		this.mObjects = objects;
 	}
 
-	   DropCandidateHolder holder = null;
 
 	   @Override
 	    public View getView(int position, View convertView, ViewGroup parent) {

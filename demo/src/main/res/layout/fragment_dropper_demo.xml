@@ -21,7 +21,7 @@
 
 
 
-
+<!--
         <RelativeLayout
             android:id="@+id/scrolldown"
             android:tag="scrolldown"
@@ -34,13 +34,12 @@
             </RelativeLayout>
 
 
-        <!-- This is the view that is drawn out -->
         <RelativeLayout
             android:id="@+id/draw"
             android:tag="dragView"
             android:layout_width="100dp"
             android:layout_height="match_parent"
-            android:background="#CCC"
+            android:background="#0FF"
             android:layout_toRightOf="@id/scrolldown"
 
             >
@@ -50,12 +49,32 @@
                 android:layout_height="match_parent"
                 android:layout_alignParentTop="true"
                 android:layout_alignParentRight="true"
-                android:background="#0FF"
+                android:divider="@null"
+                android:dividerHeight="0dp"
+                android:background="@null"
                 ></ListView>
         </RelativeLayout>
+-->
 
+        <RelativeLayout
+            android:id="@+id/draw"
+            android:tag="dragView"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"
+            android:background="#0FF"
 
-
+            >
+            <ListView
+                android:tag="listView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_alignParentTop="true"
+                android:layout_alignParentRight="true"
+                android:divider="@null"
+                android:dividerHeight="0dp"
+                android:background="@null"
+                ></ListView>
+        </RelativeLayout>
 
     </io.capsules.DropperView>
 
