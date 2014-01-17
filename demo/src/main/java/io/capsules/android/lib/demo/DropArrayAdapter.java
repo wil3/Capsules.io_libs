@@ -32,7 +32,6 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
     private int targetLeft = 50;
 
     private View _root;
-    DropCandidateHolder holder = null;
 
     public DropArrayAdapter(Context context, int viewResourceId, List<DropCandidate> objects){
 		super(context, viewResourceId, objects);
@@ -46,11 +45,14 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 	    public View getView(int position, View convertView, ViewGroup parent) {
 		   
 		   View row = convertView;
-		   final DropCandidate capsule = mObjects.get(position);
-			   LayoutInflater inflater = LayoutInflater.from(mContext);
 
-		   if (row == null){
-			   row = inflater.inflate(mViewResourceId, parent, false);
+
+           DropCandidateHolder holder = null;
+
+           if (row == null){
+               LayoutInflater inflater = LayoutInflater.from(mContext);
+
+               row = inflater.inflate(mViewResourceId, parent, false);
 			   
 			   
 			   holder = new DropCandidateHolder();
@@ -68,7 +70,9 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 
           holder.position = position;
 
-           holder.textLabel.setText("(" + position + ")");
+           final DropCandidate item = mObjects.get(position);
+
+           holder.textLabel.setText("(" + item.getLabel() + ")");
            holder.slideContainer.setBackgroundColor(Color.argb(255, position * 50, position * 10, position * 50));
 
            //mDragOverlayView = row.findViewById(R.id.container);
@@ -138,10 +142,10 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 	 * @author wil
 	 *
 	 */
-	public static class DropCandidateHolder {
+	static class DropCandidateHolder {
 		int position;
 		TextView textLabel;
-		ImageView imageIcon;
+		//ImageView imageIcon;
       //  View slideView;
         View slideContainer;
 	}

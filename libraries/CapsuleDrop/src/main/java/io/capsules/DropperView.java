@@ -211,7 +211,7 @@ public class DropperView extends RelativeLayout {
                        // return true;
                        // break;
                 }
-                DropperView.this.invalidate();
+                //DropperView.this.invalidate();
                 return false;
 
             }
@@ -244,10 +244,11 @@ public class DropperView extends RelativeLayout {
 
       //  Log.d(getClass().getName(), "Left margin=" + lParams.leftMargin );
      //   mDragView.setLayoutParams(lParams);
+            super.onFinishInflate();
     }
 
-    @Override
-    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+    //@Override
+    protected void onLayout2(boolean changed, int l, int t, int r, int b) {
 
 
         Log.d(getClass().getName(), "onLayout changed? " + changed + " " + l + " " + t + " " + r + " " + b);
@@ -320,7 +321,9 @@ public class DropperView extends RelativeLayout {
 
             final MotionEvent newEv = MotionEvent.obtainNoHistory(ev);
 
+            if (mCandidateSkeleton!= null){
             mCandidateSkeleton.dispatchTouchEvent(newEv);
+            }
             return true;
         }
         /*
@@ -543,7 +546,7 @@ public class DropperView extends RelativeLayout {
                     }
                     setCandidateState(CandidateState.IN_ENABLED_POSITION);
                 } else {
-                    Log.d(getClass().getName(), "Under enable candate " );
+                    Log.v(getClass().getName(), "Under enable candate " );
                     //Start the long touch if its not already in progress and the view is different
                     if (!mTimerStarted && mCandidateState != CandidateState.DETACHED_FROM_LIST){
                         startLongTouch();
@@ -737,10 +740,10 @@ public class DropperView extends RelativeLayout {
 
             isUnder = left <= x && x <= right && top <= y && y <= bottom;
 
-            Log.d(getClass().getName(), "isUnderEnabledCandidate view l " + mLastEnabledCandidate.getLeft());
+            Log.v(getClass().getName(), "isUnderEnabledCandidate view l " + mLastEnabledCandidate.getLeft());
 
-            Log.d(getClass().getName(), "isUnderEnabledCandidate l,r " + left + " < " + x + " < " + right);
-            Log.d(getClass().getName(), "isUnderEnabledCandidate t,b " + top + " < " + y + " < " + bottom);
+            Log.v(getClass().getName(), "isUnderEnabledCandidate l,r " + left + " < " + x + " < " + right);
+            Log.v(getClass().getName(), "isUnderEnabledCandidate t,b " + top + " < " + y + " < " + bottom);
         }
 
         return isUnder;
@@ -770,9 +773,11 @@ public class DropperView extends RelativeLayout {
        setCandidateState(CandidateState.DETACHED_FROM_LIST);
 
 
+        if (mCandidateSkeleton != null){
         final MotionEvent newEv = MotionEvent.obtainNoHistory(mLastKnownMotionEvent);
         mLastKnownMotionEvent.setAction(MotionEvent.ACTION_MOVE);
         mCandidateSkeleton.dispatchTouchEvent(newEv);
+        }
     }
 
     private void disableCandidate(View view){

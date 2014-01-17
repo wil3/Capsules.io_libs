@@ -31,7 +31,7 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
 
         dropperView = (DropperView)findViewById(R.id.dropper);
         dropperView.setCallbackListener(this);
-        dropperView.setCandidateResourceId(R.layout.draggable_view);
+       // dropperView.setCandidateResourceId(R.layout.draggable_view);
 
         mListView = (ListView)findViewById(R.id.mylist);
         dropperView.setList(mListView);
@@ -53,18 +53,19 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
 
         Log.i(getClass().getName(), "Remove index " + index);
 
+
         mItems.remove(index);
         adapter.notifyDataSetChanged();
 
-        mListView.invalidate();
+       // mListView.invalidate();
 
     }
 
     private void buildItemList(){
-
+        Log.i(getClass().getName(),"Building data list");
         for (int i=0; i< 10;i++){
             DropCandidate dc = new ColoredBoxDropCandidate();
-            dc.setLabel("Label " + i);
+            dc.setLabel("" + i);
             mItems.add(dc);
         }
     }

@@ -11,7 +11,10 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        >
         <TextView
             android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin at tristique sem, eget venenatis mauris. Suspendisse dignissim nibh eget risus facilisis iaculis. Donec tortor nisl, consequat vitae justo non, rutrum porttitor sapien. Mauris tincidunt leo id turpis rutrum, facilisis interdum ligula mattis. Fusce nec ipsum lacinia, dictum leo quis, pellentesque nibh. Nunc porta ante massa, eget porttitor urna sodales eget. Suspendisse pretium tortor bibendum posuere facilisis. Sed ante nibh, egestas vitae vestibulum at, tempus vel ligula. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Vivamus ut vehicula libero. Quisque iaculis at felis at tristique. Nulla pulvinar sit amet eros a pulvinar. Mauris eros dolor, accumsan a ante sit amet, cursus sodales ante. Vestibulum scelerisque, turpis vestibulum tincidunt luctus, risus ante blandit sapien, a posuere velit eros id sem. Cras metus neque, bibendum in dictum quis, mattis a purus. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin at tristique sem, eget venenatis mauris. Suspendisse dignissim nibh eget risus facilisis iaculis. Donec tortor nisl, consequat vitae justo non, rutrum porttitor sapien. Mauris tincidunt leo id turpis rutrum, facilisis interdum ligula mattis. Fusce nec ipsum lacinia, dictum leo quis, pellentesque nibh. Nunc porta ante massa, eget porttitor urna sodales eget. Suspendisse pretium tortor bibendum posuere facilisis. Sed ante nibh, egestas vitae vestibulum at, tempus vel ligula. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Vivamus ut vehicula libero. Quisque iaculis at felis at tristique. Nulla pulvinar sit amet eros a pulvinar. Mauris eros dolor, accumsan a ante sit amet, cursus sodales ante. Vestibulum scelerisque, turpis vestibulum tincidunt luctus, risus ante blandit sapien, a posuere velit eros id sem. Cras metus neque, bibendum in dictum quis, mattis a purus. "
             android:layout_width="wrap_content"
@@ -63,14 +66,17 @@
         android:layout_height="match_parent"
         android:background="#0FF"
 
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true"
+
         >
         <ListView
             android:id="@+id/mylist"
             android:tag="listView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_alignParentTop="true"
-            android:layout_alignParentRight="true"
+
+
             android:divider="@null"
             android:dividerHeight="0dp"
             android:background="@null"
