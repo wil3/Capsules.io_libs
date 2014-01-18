@@ -7,6 +7,16 @@ import io.capsules.DropCandidate;
  */
 public class ColoredBoxDropCandidate implements DropCandidate {
     String mLabel;
+
+    public int[] getRgb() {
+        return rgb;
+    }
+
+    public void setRgb(int[] rgb) {
+        this.rgb = rgb;
+    }
+
+    int[] rgb;
     @Override
     public String getLabel() {
         return mLabel;

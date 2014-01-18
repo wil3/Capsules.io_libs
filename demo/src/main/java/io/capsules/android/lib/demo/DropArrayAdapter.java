@@ -18,11 +18,11 @@ import java.util.List;
 import io.capsules.*;
 
 
-public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
+public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 
 	private Context mContext;
 	private int mViewResourceId;
-	private List<DropCandidate> mObjects;
+	private List<ColoredBoxDropCandidate> mObjects;
 	//protected ImageLoader imageLoader = ImageLoader.getInstance();
 	private TextView mBtnSize;
     private int _xDelta;
@@ -33,7 +33,7 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 
     private View _root;
 
-    public DropArrayAdapter(Context context, int viewResourceId, List<DropCandidate> objects){
+    public DropArrayAdapter(Context context, int viewResourceId, List<ColoredBoxDropCandidate> objects){
 		super(context, viewResourceId, objects);
 		this.mContext = context;
 		this.mViewResourceId = viewResourceId;
@@ -41,6 +41,10 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 	}
 
 
+    @Override
+    public ColoredBoxDropCandidate getItem(int position){
+        return mObjects.get(position);
+    }
 	   @Override
 	    public View getView(int position, View convertView, ViewGroup parent) {
 		   
@@ -70,10 +74,11 @@ public class DropArrayAdapter extends ArrayAdapter<DropCandidate> {
 
           holder.position = position;
 
-           final DropCandidate item = mObjects.get(position);
+           final ColoredBoxDropCandidate item = mObjects.get(position);
 
            holder.textLabel.setText("(" + item.getLabel() + ")");
-           holder.slideContainer.setBackgroundColor(Color.argb(255, position * 50, position * 10, position * 50));
+           int [] rgb = item.getRgb();
+           holder.slideContainer.setBackgroundColor(Color.argb(255,rgb[0],rgb[1],rgb[2] ));
 
            //mDragOverlayView = row.findViewById(R.id.container);
 			//holder.textName.setText(capsule.getName());
