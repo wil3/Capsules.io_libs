@@ -63,7 +63,7 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 			  // holder.textName = (TextView)row.findViewById(R.id.text_capsule_title);
 			 //  holder.imageIcon = (ImageView)row.findViewById(R.id.icon);
               // holder.slideView = row.findViewById(R.id.slide);
-               holder.slideContainer = row.findViewById(R.id.obj);
+             //  holder.slideContainer = row.findViewById(R.id.obj);
                 holder.textLabel = (TextView)row.findViewById(R.id.text_label);
 
 			   row.setTag(holder);
@@ -78,7 +78,7 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 
            holder.textLabel.setText("(" + item.getLabel() + ")");
            int [] rgb = item.getRgb();
-           holder.slideContainer.setBackgroundColor(Color.argb(255,rgb[0],rgb[1],rgb[2] ));
+           //holder.slideContainer.setBackgroundColor(Color.argb(255,rgb[0],rgb[1],rgb[2] ));
 
            //mDragOverlayView = row.findViewById(R.id.container);
 			//holder.textName.setText(capsule.getName());

@@ -18,6 +18,7 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import io.capsules.DropCandidate;
 import io.capsules.DropperView;
@@ -27,6 +28,8 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
     DropArrayAdapter adapter;
     DropperView dropperView;
     ListView mListView;
+    LayoutInflater inflater;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,7 +52,7 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
        // dropperView.setAdapter(adapter);
 
 
-
+        inflater = LayoutInflater.from(this);
         int i=0;
     }
 
@@ -78,23 +81,47 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
         */
     }
 
+    private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
+
+    /**
+     * Generate a value suitable for use in
+     * This value will not collide with ID values generated at build time by aapt for R.id.
+     *
+     * @return a generated ID value
+     */
+    public static int generateViewId() {
+        for (;;) {
+            final int result = sNextGeneratedId.get();
+            // aapt-generated IDs have the high byte nonzero; clamp to the range under that.
+            int newValue = result + 1;
+            if (newValue > 0x00FFFFFF) newValue = 1; // Roll over to 1, not 0.
+            if (sNextGeneratedId.compareAndSet(result, newValue)) {
+                return result;
+            }
+        }
+    }
+
     @Override
     public View buildView(int index) {
 
         ColoredBoxDropCandidate obj = adapter.getItem(index);
-        LayoutInflater inflater;
-        inflater = LayoutInflater.from(this);
 
-        View view = inflater.inflate(R.layout.draggable_view, null);
 
-        View slideContainer = view.findViewById(R.id.obj);
+        View view = inflater.inflate(R.layout.draggable_view, dropperView, false);
+        view.setId(generateViewId());
+Log.d(getClass().getName(), "View ID=" + view.getId());
+        //View slideContainer = view.findViewById(R.id.obj);
         TextView textLabel = (TextView)view.findViewById(R.id.text_label);
 
         textLabel.setText("(" + obj.getLabel() + ")");
         int [] rgb = obj.getRgb();
-        slideContainer.setBackgroundColor(Color.argb(255, rgb[0], rgb[1], rgb[2]));
+
+        textLabel.setBackgroundColor(Color.argb(255, rgb[0], rgb[1], rgb[2]));
+        //slideContainer.setBackgroundColor(Color.argb(255, rgb[0], rgb[1], rgb[2]));
 
 
+        //final RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(50,50);
+       // view.setLayoutParams(layoutParams);
         return view;
     }
 

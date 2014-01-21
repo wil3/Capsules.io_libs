@@ -9,7 +9,6 @@ import android.support.v4.widget.ViewDragHelper;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,7 +17,10 @@ import android.view.animation.Animation;
 import android.view.animation.TranslateAnimation;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -27,6 +29,8 @@ import java.util.TimerTask;
  */
 public class DropperView extends RelativeLayout {
 
+    private static final String TAG = "DroppedView";
+    
     private enum ScrollingState {
         STATE_SCROLLING_IDLE,
         STATE_SCROLLING_DOWN,
@@ -54,6 +58,8 @@ public class DropperView extends RelativeLayout {
 
     public static int LONG_FOCUS_TIME = 750;//milli
 
+    public static int HOVER_SLOP = 40;
+
     private static final String TAG_LIST = "listView";
 
     private ScrollingState mScrollingState = ScrollingState.STATE_SCROLLING_IDLE;
@@ -65,6 +71,9 @@ public class DropperView extends RelativeLayout {
     private View mLastEnabledCandidate = null;
 
     private ViewState mViewState = ViewState.STOP;
+    /**
+     * The draw view that contains the list
+     */
     private RelativeLayout mDragView;
     private int mXDelta;
 
@@ -89,6 +98,7 @@ public class DropperView extends RelativeLayout {
 
     private Handler mHandler = new Handler();
 
+    private List<View> mDroppedViews = new ArrayList<View>();
 
 
     private int mScrollIndex =0;
@@ -107,27 +117,31 @@ public class DropperView extends RelativeLayout {
     private int mCandidateResourceId;
 
     /**
-     * Current view that is dropped moving around
+     * Current view that is dropped moving around, this is set when dropped and then when the view is
+     * no longer focused will be null
      */
     private View mFocusedDroppedView;
 
     /**
      * Kept ready to drop
      */
-    private View mCandidateSkeleton;
+    //private View mCandidateSkeleton;
 
 
+    /**
+     * State of the focused item
+     */
     private enum CandidateState {
+        /**
+         * Nothing has happened yet, view probably isnt being used
+         */
+        NOT_STARTED,
         IN_ENABLED_POSITION,
-        IN_DISABLED_POSITION,
-        READY_TO_MOVE,
-        DETACHED_FROM_LIST
+       // IN_DISABLED_POSITION,
+        READY_TO_MOVE
+       // DETACHED_FROM_LIST
     }
-    private CandidateState mCandidateState = CandidateState.IN_DISABLED_POSITION;
-
-    private boolean mCandidateatEnabledPosition = false;
-
-    private boolean mCandidateDetached = false;
+    private CandidateState mCandidateState = CandidateState.NOT_STARTED;
 
 
     private MotionEvent mLastKnownMotionEvent;
@@ -167,8 +181,20 @@ public class DropperView extends RelativeLayout {
 
     }
 
+    /**
+     *
+     * @param view
+     * @param left
+     * @param top
+     * @return
+     */
     //TODO Add this to interface so it can be customized
-    private View prepareViewForDrop( View view, int left, int top){
+    private View addEventListenersToReleasedView(final View view, int left, int top){
+
+
+        String txt = ((TextView)((ViewGroup)view).getChildAt(0)).getText().toString();
+
+        Log.v(TAG, "Setting listeners id=" + view.getId()) ;
 
 
         RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(50,50);
@@ -179,41 +205,87 @@ public class DropperView extends RelativeLayout {
 
         view.setLayoutParams(layoutParams);
 
+        /**
+         * On a long click we want to pick the view back up to be
+         * moved or added back into the list
+*/
+        view.setOnLongClickListener(new OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                Log.d(TAG, " On Long Click");
+                return false;
+            }
+        });
 
+
+
+        /**
+         * When events are dispatched from the drop view they are events from the parent view,
+         * when the view has been dropped the event coordinates are relative to the dropped view
+         */
         view.setOnTouchListener(new OnTouchListener() {
             @Override
             public boolean onTouch(View view, MotionEvent event) {
 
                 boolean consumed = false;
+
+                //Releative to view
                 final int X = (int) event.getX();
                 final int Y = (int) event.getY();
                 final int action = MotionEventCompat.getActionMasked(event);
+                String txt = ((TextView)((ViewGroup)view).getChildAt(0)).getText().toString();
 
-                Log.v(getClass().getName(), "Skelton onTouch action x=" + X + " y=" + Y);
+                Log.v(TAG, "Released view onTouch action x=" + X + " y=" + Y + " txt=" + txt) ;
 
                 switch (event.getAction() & MotionEvent.ACTION_MASK) {
                     case MotionEvent.ACTION_DOWN:
-                        Log.d(getClass().getName(), "Skelton onTouch down");
+                        Log.d(TAG, "Released view onTouch down");
 
                         RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
                         _xDelta = X - lParams.leftMargin;
                         _yDelta = Y - lParams.topMargin;
+
+                        mInitialMotionX = X;
+                        mInitialMotionY = Y;
                         break;
                     case MotionEvent.ACTION_UP:
+
+                        RelativeLayout.LayoutParams layoutParams = ( RelativeLayout.LayoutParams)view.getLayoutParams();
+                        layoutParams.leftMargin = X - (view.getWidth()/2);
+                        layoutParams.topMargin = Y - (view.getHeight()/2);
+                         view.setLayoutParams(layoutParams);
+
+                        //no longer focused
+                        mFocusedDroppedView = null;
                         break;
                     case MotionEvent.ACTION_POINTER_DOWN:
                         break;
                     case MotionEvent.ACTION_POINTER_UP:
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        Log.v(getClass().getName(), "Skelton onTouch move");
+                        Log.v(TAG, "Skeleton onTouch move");
+                        int left = X - view.getLeft() - (view.getWidth()/2);
+                        int top = Y - view.getTop() - (view.getHeight()/2);
+                        view.offsetLeftAndRight(left);
+                        view.offsetTopAndBottom(top);
+/*
+                        //TODO instead to detemrine where its coming from set a custom action or source or just make the parent
+                        //dispatch do the conversion
+                        if (mCandidateState != CandidateState.NOT_STARTED) { //forwarded event
 
-                        RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
-                        layoutParams.leftMargin =X ;//-_xDelta;
-                        layoutParams.topMargin = Y;//- _yDelta;
-                       // view.setLayoutParams(layoutParams);
-                        view.offsetLeftAndRight(X - view.getLeft() - (view.getWidth()/2));
-                        view.offsetTopAndBottom(Y - view.getTop() - (view.getHeight()/2));
+
+
+                        } else { //event handle  directly by view
+
+                            int dx = X - view.getLeft();//(int)mInitialMotionX;
+                            int dy = Y - view.getTop();//(int)mInitialMotionY;
+
+
+ //TODO WHEN A NEW VEIW IS ADDED AND LAYOUT IS CALLED DO THE OFFSETS GET CLEARED?!?!
+                            view.offsetLeftAndRight(dx);
+                            view.offsetTopAndBottom(dy);
+                        }
+                        */
                         consumed = true;
                         break;
                 }
@@ -234,79 +306,22 @@ public class DropperView extends RelativeLayout {
     protected void onFinishInflate() {
 
         mDragView = (RelativeLayout)findViewWithTag("dragView");
+
+
+
       //  mListView = (ListView)findViewWithTag(TAG_LIST);
 
-        //    mScrolldownView = findViewWithTag("scrolldown");
-
-
-
-            // mListView.setFastScrollAlwaysVisible(true);
-       // mListView.setVerticalScrollbarPosition(View.SCROLLBAR_POSITION_LEFT);
-
-            // RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams)mDragView.getLayoutParams();
-
-
-       // lParams.leftMargin = mDisplayWidth - 20;
-
-      //  Log.d(getClass().getName(), "Left margin=" + lParams.leftMargin );
-     //   mDragView.setLayoutParams(lParams);
             super.onFinishInflate();
-    }
-
-    //@Override
-    protected void onLayout2(boolean changed, int l, int t, int r, int b) {
-
-
-        Log.d(getClass().getName(), "onLayout changed? " + changed + " " + l + " " + t + " " + r + " " + b);
-        mLastLeftPosition = getWidth();
-
-        //relative to parent
-
-        final int paddingLeft = getPaddingLeft();
-        final int paddingTop = getPaddingTop();
-
-        final int childCount = getChildCount();
-
-
-        for (int i = 0; i < childCount; i++) {
-            final View child = getChildAt(i);
-
-            if (child.getVisibility() == GONE) {
-                continue;
-            }
-
-            if (child.equals(mDragView)){
-
-                if (changed){ //When a view is added this is called and will close the draw if open
-
-                    mDragView.layout(getWidth(), t,  r + mDragView.getMeasuredWidth(), t + mDragView.getMeasuredHeight());
-
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    closeDrawer();
                 }
+            },1500);
 
-            //} else if (child.equals(mScrolldownView)){
-
-           //     final int childTop =  getHeight() - paddingTop - child.getMeasuredHeight();
-           //     final int childBottom = getHeight();
-          ////      final int childLeft = getWidth() - child.getMeasuredWidth();
-           //     final int childRight =  getWidth();
-          //      child.layout(childLeft, childTop, childRight, childBottom);
-
-
-            } else {
-                final RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) child.getLayoutParams();
-
-                final int childHeight = child.getMeasuredHeight();
-
-                final int childTop =  paddingTop + lp.topMargin;
-                final int childBottom = childTop + childHeight;
-
-                final int childLeft = paddingLeft + lp.leftMargin;
-                final int childRight = childLeft + child.getMeasuredWidth();
-
-                child.layout(childLeft, childTop, childRight, childBottom);
-            }
-        }
     }
+
+
 
     /**
      * Pass the touch screen motion event down to the target view, or this view if it is the target.
@@ -318,57 +333,28 @@ public class DropperView extends RelativeLayout {
 
         final int action = MotionEventCompat.getActionMasked(ev);
 
+
         boolean handled = super.dispatchTouchEvent(ev);
-        Log.v(getClass().getName(), "Dispatch touch event handled? " + handled + " action= " + action);
+        Log.v(TAG, "Dispatch touch event handled? " + handled + " action= " + action);
 
-        if (mCandidateState == CandidateState.DETACHED_FROM_LIST){
-            Log.v(getClass().getName(), "Dispatch touch event to the skelton");
-            ev.setAction(MotionEvent.ACTION_MOVE);
 
-            final MotionEvent newEv = MotionEvent.obtainNoHistory(ev);
 
-            if (mFocusedDroppedView!= null){
+
+            if (mFocusedDroppedView != null){
+                String txt = ((TextView)((ViewGroup)mFocusedDroppedView).getChildAt(0)).getText().toString();
+
+                Log.v(TAG, "Dispatch " + action + " touch event to the skelton " + txt);
+                // ev.setAction(MotionEvent.ACTION_MOVE);
+
+                final MotionEvent newEv = MotionEvent.obtainNoHistory(ev);
+
+
                 mFocusedDroppedView.dispatchTouchEvent(newEv);
-            }
-            return true;
-        }
-        /*
-        boolean intercepted = false;
+                return true;
 
-        final int action = MotionEventCompat.getActionMasked(ev);
-
-        if (action == MotionEvent.ACTION_DOWN){
-           intercepted = onInterceptTouchEvent(ev);
-        }
-
-
-        switch (action) {
-            case MotionEvent.ACTION_DOWN: {
-
-                break;
             }
 
-            case MotionEvent.ACTION_MOVE: {
 
-                int [] windowLocation = new int [2];
-                this.getLocationInWindow(windowLocation);
-
-                if (mCandidateDetached){
-                    Log.d(getClass().getName(), "Dispatch touch event to the skelton");
-
-                    return false;
-                }
-                break;
-            }
-
-            case MotionEvent.ACTION_UP: {
-                //mLastChildAdded = null;
-                break;
-            }
-
-        }
-
-*/
         //True if the event was handled by the view, false otherwise.
         return handled;
 
@@ -408,10 +394,16 @@ public class DropperView extends RelativeLayout {
             case MotionEvent.ACTION_DOWN: {
                 mInitialMotionX = x;
                 mInitialMotionY = y;
-                Log.d(getClass().getName(), "On touch Down Intercept");
+                Log.d(TAG, "On touch Down Intercept");
 
                   interceptTap = (mViewState == ViewState.START) ? true : false;
 
+                final View view;
+                if ((view = getDroppedView((int)x,(int)y))!= null){
+                    mFocusedDroppedView = view;
+                    Log.d(TAG, "On touch Down Intercept, dropped view hit");
+                    interceptTap = true;
+                }
                // interceptTap = mDragHelper.isViewUnder(mDragView, (int) x, (int) y);
                 break;
             }
@@ -423,16 +415,17 @@ public class DropperView extends RelativeLayout {
 
                 int findX = getWidth() - (mDragView.getWidth() / 2);
                 View v = mDragHelper.findTopChildUnder(findX,(int)y);
-                Log.d(getClass().getName(), "On touch Intercept");
+                Log.d(TAG, "On touch Intercept");
 
 
-                if (mCandidateDetached){
-                    return true;
-                }
+             //   if (mCandidateDetached){
+              //      return true;
+             //   }
+
                 //check out the slop, if change too great cancel.
                 // if the vertical change is greater than the horizontal change also cancel
                /* if (adx > slop && ady > adx) {
-                    Log.d(getClass().getName(),"Cancelling event");
+                    Log.d(TAG,"Cancelling event");
 
                     mDragHelper.cancel();
                     return false;
@@ -441,7 +434,7 @@ public class DropperView extends RelativeLayout {
         }
 
         //return true to intercept
-        Log.v(getClass().getName(), "Intercept? " + intercept + " Edge touched? " + interceptTap);
+        Log.v(TAG, "Intercept? " + intercept + " Edge touched? " + interceptTap);
         return intercept || interceptTap;
     }
 
@@ -450,10 +443,12 @@ public class DropperView extends RelativeLayout {
     public boolean onTouchEvent(MotionEvent ev) {
 //        Log.d(TAG, "On touch x=" + ev.getX() + " y=" + ev.getY());
 
+        final int action = MotionEventCompat.getActionMasked(ev);
+
+
 
         mDragHelper.processTouchEvent(ev);
 
-        final int action = ev.getAction();
         final float x = ev.getX();
         final float y = ev.getY();
 
@@ -461,32 +456,23 @@ public class DropperView extends RelativeLayout {
 
         boolean isMovingHorizontally = true;
 
-        switch (action & MotionEventCompat.ACTION_MASK) {
-            case MotionEvent.ACTION_DOWN: {
-                mInitialMotionX = x;
-                mInitialMotionY = y;
-                break;
-            }
+        switch (action) {
 
             case MotionEvent.ACTION_UP: {
-                //We wamt to close when up
-                final float dx = x - mInitialMotionX;
-                final float dy = y - mInitialMotionY;
-                final int slop = mDragHelper.getTouchSlop();
 
-             //   if (dx * dx + dy * dy < slop * slop && isViewUnder) {
-                  //  if (isViewUnder){
+                //if (mFocusedDroppedView == null){
+                    reset();
+               // } else {
+               //     closeDrawer();
+               // }
 
-
-                reset();
-                //}
                 break;
             }
             case MotionEvent.ACTION_MOVE: {
 
 
                 mLastKnownMotionEvent = ev;
-            //    Log.v(getClass().getName(), "On touch x=" + (int) x + " y=" + (int) y );
+            //    Log.v(TAG, "On touch x=" + (int) x + " y=" + (int) y );
 
 /*
                 final float dx = x - mInitialMotionX;
@@ -495,12 +481,12 @@ public class DropperView extends RelativeLayout {
                 View v = mDragHelper.findTopChildUnder((int)x,(int)y);
                 if (v == null) break;
 
-                Log.v(getClass().getName(), "On touch x=" + (int) x + " y=" + (int) y + " dx= " + dx );
+                Log.v(TAG, "On touch x=" + (int) x + " y=" + (int) y + " dx= " + dx );
 
                 if (v.getTag() != null){
                     String tag = (String)v.getTag();
                     if (tag.equals("scrolldown")){
-                        Log.d(getClass().getName(),"Scroll down...");
+                        Log.d(TAG,"Scroll down...");
 
                         //If we are not already scrolling...
                         if (mScrollingState != ScrollingState.STATE_SCROLLING_DOWN){
@@ -521,46 +507,44 @@ public class DropperView extends RelativeLayout {
 */
              //   updateFocusedListItem((int) x, (int) y);
 
-                  /*
-                    if (shouldDrop((int) x) && isDrawExtended() && !mCandidateDetached){
+                if (isHoveredVerticalEdge(ViewDragHelper.EDGE_RIGHT, (int) x) && !isDrawerOpen()){
+                    openDrawer();
+                }
 
-                        ev.setAction(MotionEvent.ACTION_DOWN);
 
-                        final MotionEvent newEv = MotionEvent.obtainNoHistory(ev);
 
-                        Log.d(getClass().getName(), "CAN DROP");
-                       // setListItemToBeDragged((int) x, (int) y);
-                        mCandidateSkeleton.dispatchTouchEvent(newEv);
-                        mCandidateDetached = true;
-                        return false;
-                    } else {
-
-                    }
-    */
                 //If were ditached just forward move events to the dropped view
-                if (mCandidateState == CandidateState.DETACHED_FROM_LIST){
+                if (isADroppedViewFocused()){
+
+                    //mDragHelper.cancel();
 
 
-                    return false;
+                    if (!mDragHelper.isViewUnder(mDragView, (int)x, (int)y) && isDrawerOpen()){
+                        closeDrawer();
+                    }
+                    return true;
                 }
 
                 ViewGroup focusedListItem = (ViewGroup)getFocusedListItem((int) x, (int) y);
 
+
+
+                //Handle the removable of the item from the list to be dropped
                 if (!isUnderEnabledCandidate((int) x, (int) y)){
                     if (mTimerStarted){
-                    cancelLongTouch();
+                        cancelLongTouch();
                     }
                    // setCandidateState(CandidateState.IN_ENABLED_POSITION);
                 } else {
-                    Log.v(getClass().getName(), "Under enable candate " );
+                    Log.v(TAG, "Under enable candate " );
                     //Start the long touch if its not already in progress and the view is different
-                    if (!mTimerStarted && mCandidateState != CandidateState.DETACHED_FROM_LIST){
+                    if (!mTimerStarted && !isADroppedViewFocused()){
                         startLongTouch();
                     }
                 }
 
 
-                //We are on a new focused item
+                //We are on a new focused item, this should only be
                 if (focusedListItem != null && !focusedListItem.equals(mFocusedListItem)){
 
                     //If there was a previous enabled one disable it
@@ -570,10 +554,6 @@ public class DropperView extends RelativeLayout {
                     enableCandidate(newCandidate);
                     mLastEnabledCandidate = newCandidate;
 
-
-
-
-
                     mFocusedListItem = focusedListItem;
                 }
 
@@ -582,13 +562,28 @@ public class DropperView extends RelativeLayout {
         }
 
         //true if event handled
-        return true;//isViewUnder && isViewHit(mDragView, (int) x, (int) y) ;
+        boolean handled = mCandidateState != CandidateState.NOT_STARTED || (mViewState == ViewState.START);
+        Log.d(TAG, "Returning " + handled + " from touch event");
+
+
+        return handled;//;//isViewUnder && isViewHit(mDragView, (int) x, (int) y) ;
 
 
     }
 
+
+    private boolean isHoveredVerticalEdge(int edge, int x){
+
+        if (edge == ViewDragHelper.EDGE_RIGHT){
+            return getWidth() - HOVER_SLOP <= x && x <= getWidth();
+        } else if (edge == ViewDragHelper.EDGE_LEFT){
+            return 0 <= x && x <= HOVER_SLOP;
+        }
+        return false;
+    }
+
     private void setCandidateState(CandidateState state){
-        Log.d(getClass().getName(), "State changed " + state);
+        Log.d(TAG, "State changed " + state);
         mCandidateState = state;
     }
     private void cancelLongTouch(){
@@ -612,7 +607,6 @@ public class DropperView extends RelativeLayout {
      */
     private void onCandidateEnabled(View view){
 
-        mCandidateatEnabledPosition = true;
         setCandidateState(CandidateState.IN_ENABLED_POSITION);
 
 
@@ -620,7 +614,6 @@ public class DropperView extends RelativeLayout {
     private void onCandidateDisabled(View view){
        // mLongFocusTimer.cancel();
         //mLongFocusTimer.purge();
-        mCandidateatEnabledPosition = false;
         //setCandidateState(CandidateState.IN_DISABLED_POSITION);
 
     }
@@ -629,24 +622,22 @@ public class DropperView extends RelativeLayout {
     }
 
 
+    private boolean isADroppedViewFocused(){
+        return mFocusedDroppedView != null;
+    }
+
     private void reset(){
 
         mViewState = ViewState.STOP;
-        mCandidateDetached = false;
 
-        setCandidateState(CandidateState.IN_DISABLED_POSITION);
+        setCandidateState(CandidateState.NOT_STARTED);
 
         closeDrawer();
-
 
         //Clean up
         listReset();
 
     }
-    private void closeDrawer(){
-        smoothSlideTo(1f);
-    }
-
     /**
      * Start off fresh
      */
@@ -656,6 +647,34 @@ public class DropperView extends RelativeLayout {
         mFocusedListItem = null;
     }
 
+    private boolean isDrawerOpen(){
+
+        Log.i(TAG, " drag view= " + mDragView.getLeft() + " w= " + getWidth());
+        return mDragView.getLeft() != getWidth();
+    }
+    private boolean openDrawer(){
+        final int leftBound = getWidth() - mDragView.getWidth();
+
+        return slideTo(leftBound);
+
+    }
+    private boolean closeDrawer(){
+        final int leftBound = getWidth();
+
+        return slideTo(leftBound);
+
+    }
+
+    private boolean slideTo(int finalX){
+        if (mDragHelper.smoothSlideViewTo(mDragView, finalX, mDragView.getTop())) {
+            ViewCompat.postInvalidateOnAnimation(this);
+            return true;
+        }
+        return false;
+    }
+
+
+    /*
     private void setListItemToBeDragged(int x, int y){
 
         y -= getScreenOffset()[0];//correct from action bar
@@ -670,6 +689,7 @@ public class DropperView extends RelativeLayout {
               //  invalidate();
 
     }
+    */
     /**
      * If we are hovering over an object to drop
      * @param x
@@ -695,6 +715,11 @@ public class DropperView extends RelativeLayout {
         return listitemView;
     }
 
+    /**
+     * Get the view that is able to slide into enabled position to be removed from the list
+     * @param listRow
+     * @return
+     */
     private View getDraggableViewInListRow(ViewGroup listRow){
         //Can and only should have 1 child view
         if (listRow.getChildCount() != 1) return null;
@@ -725,13 +750,37 @@ public class DropperView extends RelativeLayout {
         mLastEnabledCandidate = child;
 
         mFocusedListItem = listitemView;
-        Log.d(getClass().getName(), "List item " + mFocusedListItemIndex);
+        Log.d(TAG, "List item " + mFocusedListItemIndex);
       //  listView.
 
 
     }
 
+    /**
+     * Get the dropped view that has been released from thel ist, if it is under these coorridiates
+     * @param x
+     * @param y
+     * @return
+     */
+    private View getDroppedView(int x, int y){
+        View found = null;
+        for (View view : mDroppedViews){
+            if (mDragHelper.isViewUnder(view, x, y)){
+                found = view;
+                break;
+            }
+        }
 
+        return found;
+    }
+
+
+    /**
+     * Determines if we are on top an enabled candidate
+     * @param x
+     * @param y
+     * @return
+     */
     private boolean isUnderEnabledCandidate(int x, int y){
         //Since we are trying to get the position of the view that went through animation,
         //The current position we query is not actually its position on the screen
@@ -750,10 +799,10 @@ public class DropperView extends RelativeLayout {
 
             isUnder = left <= x && x <= right && top <= y && y <= bottom;
 
-            Log.v(getClass().getName(), "isUnderEnabledCandidate view l " + mLastEnabledCandidate.getLeft());
+            Log.v(TAG, "isUnderEnabledCandidate view l " + mLastEnabledCandidate.getLeft());
 
-            Log.v(getClass().getName(), "isUnderEnabledCandidate l,r " + left + " < " + x + " < " + right);
-            Log.v(getClass().getName(), "isUnderEnabledCandidate t,b " + top + " < " + y + " < " + bottom);
+            Log.v(TAG, "isUnderEnabledCandidate l,r " + left + " < " + x + " < " + right);
+            Log.v(TAG, "isUnderEnabledCandidate t,b " + top + " < " + y + " < " + bottom);
         }
 
         return isUnder;
@@ -774,34 +823,40 @@ public class DropperView extends RelativeLayout {
     }
 
 
-    private void dropCandidate(){
+    /**
+     * Release the view from the list
+     */
+    private void releaseViewFromList(){
        //mListView.removeView(mLastEnabledCandidate);
        //addView(mLastEnabledCandidate);
 
         mFocusedListItem.setVisibility(INVISIBLE);
         //mFocusedListItem.invalidate();
-        mFocusedDroppedView = mCallback.buildView(mFocusedListItemIndex);
 
-        mCallback.onCandidateDropped(mFocusedListItemIndex,mLastEnabledCandidate);
+        View releasedView = mCallback.buildView(mFocusedListItemIndex);
 
 closeDrawer();
 
+        mFocusedListItem.setVisibility(VISIBLE);
+        mCallback.onCandidateDropped(mFocusedListItemIndex,mLastEnabledCandidate);
 
 
         int leftMargin = getWidth() - mDragView.getWidth();
         int[] lt = new int[2];
         mFocusedListItem.getLocationOnScreen(lt);
-
         final int topMargin = lt[1] - getScreenOffset()[0];
+        addEventListenersToReleasedView(releasedView, leftMargin, topMargin);
 
 
-         prepareViewForDrop(mFocusedDroppedView, leftMargin, topMargin);
-        addView(mFocusedDroppedView);
 
+        //Now add it
+        addView(releasedView);
         //  mListAdapter.notifyDataSetChanged();
-       setCandidateState(CandidateState.DETACHED_FROM_LIST);
+        mDroppedViews.add(releasedView);
+        mFocusedDroppedView = releasedView;
 
 
+        /*
         if (mCandidateSkeleton != null){
 
             int[] xy = new int[2];
@@ -815,6 +870,7 @@ closeDrawer();
 
             mCandidateSkeleton.dispatchTouchEvent(newEv);
         }
+        */
     }
 
     private void disableCandidate(View view){
@@ -879,17 +935,7 @@ closeDrawer();
 
         } */
     }
-    boolean smoothSlideTo(float slideOffset) {
-        final int leftBound = getWidth();
 
-        int x = (int) (leftBound + slideOffset * mDragRange);
-
-        if (mDragHelper.smoothSlideViewTo(mDragView, leftBound, mDragView.getTop())) {
-            ViewCompat.postInvalidateOnAnimation(this);
-            return true;
-        }
-        return false;
-    }
 
     private boolean isViewHit(View view, int x, int y) {
         int[] viewLocation = new int[2];
@@ -918,7 +964,7 @@ closeDrawer();
             final int top = location[1]-topOffset;
             final int bottom = top + child.getHeight();
 
-          //  Log.d(getClass().getName()  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
+          //  Log.d(TAG  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
             if (x >= left && x < right &&
                     y >= top && y < bottom) {
                 return i;//((DropArrayAdapter.DropCandidateHolder)child.getTag()).position;
@@ -942,7 +988,7 @@ closeDrawer();
             final int top = location[1]-topOffset;
             final int bottom = top + child.getHeight();
 
-            //  Log.d(getClass().getName()  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
+            //  Log.d(TAG  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
             if (x >= left && x < right &&
                     y >= top && y < bottom) {
                 return child;
@@ -1029,22 +1075,22 @@ closeDrawer();
 
         @Override
         public void onViewDragStateChanged(int state){
-            Log.v(getClass().getName(), "onViewDragStateChanged " + state);
+            Log.v(TAG, "onViewDragStateChanged " + state);
         }
 
         @Override
         public void onViewCaptured(View capturedChild, int activePointerId) {
-            Log.v(getClass().getName(), "onViewCaptured");
+            Log.v(TAG, "onViewCaptured");
 
         }
         @Override
         public int getViewHorizontalDragRange(View child){
-            Log.v(getClass().getName(),"w = " + mDragView.getWidth());
+           // Log.v(TAG,"w = " + mDragView.getWidth());
             return mDragView.getWidth();
         }
         @Override
         public void onEdgeTouched(int edgeFlags, int pointerId) {
-            Log.d(getClass().getName(),"Edget touched");
+            Log.d(TAG,"Edget touched");
 
             mViewState = ViewState.START;
             //Makes it so it can slide out
@@ -1055,7 +1101,7 @@ closeDrawer();
         }
 
         public void onEdgeDragStarted(int edgeFlags, int pointerId) {
-            Log.v(getClass().getName(),"Edge drag start");
+            Log.v(TAG,"Edge drag start");
 
             mDragHelper.captureChildView(mDragView, pointerId);
         }
@@ -1073,7 +1119,7 @@ closeDrawer();
 
             int top = getPaddingTop();
 
-            Log.v(getClass().getName(), "onViewRelease  l=" + getWidth() + " t=" + top);
+            Log.v(TAG, "onViewRelease  l=" + getWidth() + " t=" + top);
 
             mDragHelper.settleCapturedViewAt(getWidth(), top);
 
@@ -1087,7 +1133,7 @@ closeDrawer();
 
         @Override
         public boolean tryCaptureView(View view, int i) {
-            Log.v(getClass().getName(), "tryCaptureView");
+          //  Log.v(TAG, "tryCaptureView");
 
             return view.equals(mDragView);
         }
@@ -1095,7 +1141,7 @@ closeDrawer();
         @Override
         public int clampViewPositionHorizontal(View child, int left, int dx) {
 
-            //Log.d(getClass().getName(), "clampViewPositionHorizontal " + left + "," + dx);
+            //Log.d(TAG, "clampViewPositionHorizontal " + left + "," + dx);
             int newLeft;
             if (dx <= 0){ //only move to the left
 
@@ -1129,8 +1175,8 @@ closeDrawer();
         @Override
         public boolean handleMessage(Message msg) {
 
-            Log.d(getClass().getName(), "DROP!");
-            dropCandidate();
+            Log.d(TAG, "DROP!");
+            releaseViewFromList();
            // setCandidateState(CandidateState.READY_TO_MOVE);
             cancelLongTouch();
 
