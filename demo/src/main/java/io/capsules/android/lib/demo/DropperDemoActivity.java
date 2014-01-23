@@ -24,6 +24,7 @@ import io.capsules.DropCandidate;
 import io.capsules.DropperView;
 
 public class DropperDemoActivity extends FragmentActivity implements DropperView.Callback {
+    private static String TAG = "DropperDemo";
     List<ColoredBoxDropCandidate> mItems = new ArrayList<ColoredBoxDropCandidate>();
     DropArrayAdapter adapter;
     DropperView dropperView;
@@ -64,8 +65,8 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
         Log.i(getClass().getName(), "Remove index " + index);
 
 
-        mItems.remove(index);
-        adapter.notifyDataSetChanged();
+   mItems.remove(index);
+   adapter.notifyDataSetChanged();
 
         //dropperView.addView(view);
 
@@ -79,6 +80,17 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
         view.setLayoutParams(layoutParams);
         dropperView.addView(view);
         */
+    }
+
+    @Override
+    public void onCandidateAdded(int index, View view) {
+        ColoredBoxDropCandidate dc = (ColoredBoxDropCandidate)view.getTag();
+        dc.setLabel(dc.getLabel());
+
+        Log.d(TAG, " Adding " + dc.getLabel() + " back to list" );
+        mItems.add(index, dc);
+        adapter.notifyDataSetChanged();
+
     }
 
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
@@ -101,13 +113,16 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
         }
     }
 
+
     @Override
-    public View buildView(int index) {
+    public View createReleasedView(int index) {
 
         ColoredBoxDropCandidate obj = adapter.getItem(index);
 
 
         View view = inflater.inflate(R.layout.draggable_view, dropperView, false);
+        //Set the object to the tag so we can retreive it later
+        view.setTag(obj);
         view.setId(generateViewId());
 Log.d(getClass().getName(), "View ID=" + view.getId());
         //View slideContainer = view.findViewById(R.id.obj);
@@ -116,7 +131,7 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
         textLabel.setText("(" + obj.getLabel() + ")");
         int [] rgb = obj.getRgb();
 
-        textLabel.setBackgroundColor(Color.argb(255, rgb[0], rgb[1], rgb[2]));
+       // textLabel.setBackgroundColor(Color.argb(255, rgb[0], rgb[1], rgb[2]));
         //slideContainer.setBackgroundColor(Color.argb(255, rgb[0], rgb[1], rgb[2]));
 
 
