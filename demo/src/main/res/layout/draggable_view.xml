@@ -17,6 +17,9 @@
         android:background="#EEE"
         android:orientation="vertical"
         android:gravity="center"
+        android:tag="dragView"
+        android:id="@id/candidate"
+
         >
 
         <TextView

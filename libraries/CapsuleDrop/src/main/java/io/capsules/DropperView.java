@@ -1,6 +1,7 @@
 package io.capsules;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.view.MotionEventCompat;
@@ -49,14 +50,31 @@ public class DropperView extends RelativeLayout {
         STOP
     }
 
+    /**
+     * State of the focused item
+     */
+    private enum CandidateState {
+        /**
+         * Nothing has happened yet, view probably isnt being used
+         */
+        NOT_STARTED,
+        IN_ENABLED_POSITION,
+        // IN_DISABLED_POSITION,
+        READY_TO_MOVE
+        // DETACHED_FROM_LIST
+    }
+
     public interface Callback {
         public void onCandidateDropped(int index,View view);
         public void onCandidateAdded(int index,View view);
 
         public View createReleasedView(int index);
+        public void onCandidateEnabled(ViewGroup listitem);
+        public void onCandidateDisable(ViewGroup listitem);
+
+        public void onReset();
     }
 
-    private Callback mCallback;
     public static int SLIDE_DURATION = 1000;
 
     /**
@@ -69,6 +87,14 @@ public class DropperView extends RelativeLayout {
     public static int HOVER_SLOP = 40;
 
     private static final String TAG_LIST = "listView";
+
+
+    private CandidateState mCandidateState = CandidateState.NOT_STARTED;
+
+    /**
+     * Callback for certain events
+     */
+    private Callback mCallback;
 
     private ScrollingState mScrollingState = ScrollingState.STATE_SCROLLING_IDLE;
 
@@ -95,6 +121,9 @@ public class DropperView extends RelativeLayout {
     private float mInitialMotionY;
 
 
+    /**
+     * The list view used to display all viable candidates to be released
+     */
     private ListView mListView;
    // private ArrayAdapter mListAdapter;
 
@@ -104,8 +133,14 @@ public class DropperView extends RelativeLayout {
    // private View mScrolldownView;
 
 
+    /**
+     * Callback for UI events
+     */
     private Handler mHandler = new Handler();
 
+    /**
+     * Keep track of all the released views
+     */
     private List<View> mDroppedViews = new ArrayList<View>();
 
 
@@ -117,8 +152,14 @@ public class DropperView extends RelativeLayout {
      */
     private int mFocusedListItemIndex = -1;
 
+    /**
+     * The last list item index that was expanded
+     */
     private int mLastExpandedViewIndex = -1;
 
+    /**
+     * The currently focused list item
+     */
     private ViewGroup mFocusedListItem;
 
     /**
@@ -139,20 +180,6 @@ public class DropperView extends RelativeLayout {
 
     private View mLastExpandedView;
 
-    /**
-     * State of the focused item
-     */
-    private enum CandidateState {
-        /**
-         * Nothing has happened yet, view probably isnt being used
-         */
-        NOT_STARTED,
-        IN_ENABLED_POSITION,
-       // IN_DISABLED_POSITION,
-        READY_TO_MOVE
-       // DETACHED_FROM_LIST
-    }
-    private CandidateState mCandidateState = CandidateState.NOT_STARTED;
 
 
     private MotionEvent mLastKnownMotionEvent;
@@ -160,7 +187,14 @@ public class DropperView extends RelativeLayout {
 
     private boolean mTimerStarted = false;
 
+    /**
+     * Timer used to determine long touches
+     */
     Timer mLongFocusTimer = new Timer();
+
+
+    private int mDrawerResourceId;
+    private int mReleasableResourceId;
 
     public DropperView(Context context) {
         this(context, null);
@@ -171,6 +205,8 @@ public class DropperView extends RelativeLayout {
     public DropperView(Context context, AttributeSet attrs, int defStyle){
         super(context,attrs,defStyle);
 
+        init(attrs);
+
         mDragHelper = ViewDragHelper.create(this, 1.0f,new DragHelperCallback());
         mDragHelper.setEdgeTrackingEnabled(ViewDragHelper.EDGE_RIGHT);
 
@@ -179,6 +215,27 @@ public class DropperView extends RelativeLayout {
         mDisplayWidth = dm.widthPixels;
 
 
+    }
+    private void init( AttributeSet attrs){
+
+        TypedArray a=getContext().obtainStyledAttributes(
+                attrs,R.styleable.DropperView);
+
+        mReleasableResourceId = a.getResourceId(R.styleable.DropperView_releasableView, -1);
+
+
+        if (mReleasableResourceId == -1){
+            throw new IllegalArgumentException("You must define a releasable view");
+        }
+
+        mDrawerResourceId = a.getResourceId(R.styleable.DropperView_drawerView, -1);
+        if (mDrawerResourceId == -1){
+            throw new IllegalArgumentException("You must define a drawer view");
+        }
+
+        if (a != null){
+            a.recycle();
+        }
     }
 
 
@@ -686,7 +743,8 @@ public class DropperView extends RelativeLayout {
 
         view.startAnimation(a);
 */
-        view.setPadding(0,0,0,50);
+        int bottomPadding  = (mLastEnabledCandidate == null) ? mFocusedDroppedView.getHeight() : mLastEnabledCandidate.getHeight();
+        view.setPadding(0,0,0,bottomPadding);
 
     }
     private void collapseListItemView(View view){
@@ -796,6 +854,8 @@ public class DropperView extends RelativeLayout {
         //Clean up
         listReset();
         mFocusedDroppedView = null;
+
+        mCallback.onReset();
     }
     /**
      * Start off fresh
@@ -917,11 +977,12 @@ Log.d(TAG, "View index to expand " + childIndex);
      */
     private View getDraggableViewInListRow(ViewGroup listRow){
         //Can and only should have 1 child view
-        if (listRow.getChildCount() != 1) return null;
+       // if (listRow.getChildCount() != 1) return null;
 
 
-        View child = listRow.getChildAt(0);
-        return child;
+       // View child = listRow.getChildAt(0);
+
+        return listRow.findViewById(mReleasableResourceId);
 
     }
 
@@ -1033,7 +1094,7 @@ Log.d(TAG, "View index to expand " + childIndex);
         mFocusedDroppedView= null;
 
         mLastEnabledCandidate = null;
-        //reset();
+        //onReset();
 
     }
 
@@ -1085,7 +1146,7 @@ Log.d(TAG, "View index to expand " + childIndex);
         //This will rebuild the list
         mCallback.onCandidateDropped(mFocusedListItemIndex,null);
 
-        int leftMargin = getWidth() - mDragView.getWidth();
+        int leftMargin = getWidth() - (mLastEnabledCandidate.getWidth()*2);
         int[] lt = new int[2];
         mFocusedListItem.getLocationOnScreen(lt);
         final int topMargin = lt[1] - getScreenOffset()[0];
@@ -1095,7 +1156,7 @@ Log.d(TAG, "View index to expand " + childIndex);
         Log.v(TAG, "Release view l= " + leftMargin + " t= " + topMargin) ;
 
 
-        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(50,50);
+        RelativeLayout.LayoutParams layoutParams = new RelativeLayout.LayoutParams(mLastEnabledCandidate.getWidth(), mLastEnabledCandidate.getHeight());
         //      75,75);
         //Init off screen
         layoutParams.leftMargin = leftMargin;
@@ -1117,10 +1178,12 @@ Log.d(TAG, "View index to expand " + childIndex);
      * list
      */
     private void onCandidateEnabled(View view){
+        Log.v(TAG, "On candidate enable");
 
         setCandidateState(CandidateState.IN_ENABLED_POSITION);
 
 
+        mCallback.onCandidateEnabled(mFocusedListItem);
     }
 
     /**
@@ -1133,7 +1196,7 @@ Log.d(TAG, "View index to expand " + childIndex);
         // mLongFocusTimer.cancel();
         //mLongFocusTimer.purge();
         //setCandidateState(CandidateState.IN_DISABLED_POSITION);
-
+        mCallback.onCandidateDisable(null);
     }
 
     private void quickEnableCandidate(View view){

@@ -1,10 +1,12 @@
 
 <io.capsules.DropperView
+    xmlns:capsules="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/dropper"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
+    capsules:releasableView="@+id/candidate"
+    capsules:drawerView="@+id/drawer"
     >
 
 
@@ -61,9 +63,9 @@
     -->
 
     <RelativeLayout
-        android:id="@+id/draw"
+        android:id="@id/drawer"
         android:tag="dragView"
-        android:layout_width="100dp"
+        android:layout_width="250dp"
         android:layout_height="match_parent"
         android:background="#0FF"
 

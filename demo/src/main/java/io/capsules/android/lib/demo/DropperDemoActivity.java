@@ -38,7 +38,7 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
 
         dropperView = (DropperView)findViewById(R.id.dropper);
         dropperView.setCallbackListener(this);
-        dropperView.setCandidateResourceId(R.layout.draggable_view);
+       // dropperView.setCandidateResourceId(R.layout.draggable_view);
 
         mListView = (ListView)findViewById(R.id.mylist);
 
@@ -62,6 +62,7 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
     @Override
     public void onCandidateDropped(int index,View view) {
 
+        onReset();
         Log.i(getClass().getName(), "Remove index " + index);
 
 
@@ -140,6 +141,31 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
         return view;
     }
 
+    View mLastEnabledListItem;
+    @Override
+    public void onCandidateEnabled(ViewGroup listitem) {
+
+        if (mLastEnabledListItem != null) mLastEnabledListItem.setVisibility(View.GONE);
+
+        TextView desc = (TextView)listitem.findViewById(R.id.description);
+        Log.d(TAG,"Description to display " + desc.getText());
+        desc.setVisibility(View.VISIBLE);
+
+        mLastEnabledListItem = desc;
+    }
+
+    @Override
+    public void onCandidateDisable(ViewGroup listitem) {
+
+       // mLastEnabledListItem.setVisibility(View.GONE);
+    }
+
+    @Override
+    public void onReset() {
+        if (mLastEnabledListItem != null) mLastEnabledListItem.setVisibility(View.GONE);
+
+    }
+
     private void buildItemList(){
         Log.i(getClass().getName(),"Building data list");
         for (int i=0; i< 10;i++){
@@ -147,6 +173,7 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
             dc.setLabel("" + i);
             int [] rgb = {50 * i, 10 * i, 50 * i};
             dc.setRgb(rgb);
+            dc.setmDescription("Description " + i);
             mItems.add(dc);
         }
     }

@@ -8,6 +8,15 @@ import io.capsules.DropCandidate;
 public class ColoredBoxDropCandidate implements DropCandidate {
     String mLabel;
 
+    public String getmDescription() {
+        return mDescription;
+    }
+
+    public void setmDescription(String mDescription) {
+        this.mDescription = mDescription;
+    }
+
+    String mDescription;
     public int[] getRgb() {
         return rgb;
     }

@@ -60,11 +60,8 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 			   
 			   
 			   holder = new DropCandidateHolder();
-			  // holder.textName = (TextView)row.findViewById(R.id.text_capsule_title);
-			 //  holder.imageIcon = (ImageView)row.findViewById(R.id.icon);
-              // holder.slideView = row.findViewById(R.id.slide);
-             //  holder.slideContainer = row.findViewById(R.id.obj);
                 holder.textLabel = (TextView)row.findViewById(R.id.text_label);
+               holder.textDescription = (TextView)row.findViewById(R.id.description);
 
 			   row.setTag(holder);
 			   
@@ -77,65 +74,10 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
            final ColoredBoxDropCandidate item = mObjects.get(position);
 
            holder.textLabel.setText("(" + item.getLabel() + ")");
+
+           holder.textDescription.setText(item.getmDescription());
            int [] rgb = item.getRgb();
-           //holder.slideContainer.setBackgroundColor(Color.argb(255,rgb[0],rgb[1],rgb[2] ));
 
-           //mDragOverlayView = row.findViewById(R.id.container);
-			//holder.textName.setText(capsule.getName());
-
-//           SlideContainer container = (SlideContainer)row.findViewById(R.id.container);
- //          container.setTag(position);
-   //        container.setDragView(holder.slideView);
-          // holder.slideView.setTag();
-
-           /**
-            * Listen for touch events, this view can slide horizontally
-
-           holder.slideView.setOnTouchListener(new View.OnTouchListener() {
-               @Override
-               public boolean onTouch(View view, MotionEvent motionEvent) {
-                   final int X = (int) motionEvent.getRawX();
-                   final int Y = (int) motionEvent.getRawY();
-
-                   Log.d(getClass().getName(), "List item touched");
-
-                   View parent = (View)view.getTag();
-
-                   int relativeLeft = (int) motionEvent.getX() - view.getLeft();
-
-                   switch (motionEvent.getAction() & MotionEvent.ACTION_MASK) {
-                       case MotionEvent.ACTION_DOWN:
-                           RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
-                           _xDelta = X - lParams.leftMargin;
-                           _yDelta = Y - lParams.topMargin;
-                           mInitialMotionX = (int)motionEvent.getX();
-                           mInitialMotionY = (int)motionEvent.getY();
-                           Log.d(getClass().getName(), "Down");
-
-                           break;
-                       case MotionEvent.ACTION_UP:
-                           Log.d(getClass().getName(), "Up");
-
-                           break;
-                       case MotionEvent.ACTION_POINTER_DOWN:
-                           break;
-                       case MotionEvent.ACTION_POINTER_UP:
-                           break;
-                       case MotionEvent.ACTION_MOVE:
-
-                           RelativeLayout.LayoutParams layoutParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
-                           layoutParams.leftMargin = X - _xDelta;
-                           view.setLayoutParams(layoutParams);
-                           break;
-                   }
-
-                   ((View) view.getParent()).invalidate();
-                   return true;
-               }
-           });
-            */
-			//imageLoader.displayImage(capsule.getThumbnail(), holder.imageIcon, Constants.OPTIONS_IMAGE_LOADER);
-		
 		   return row;
 
 		
@@ -150,7 +92,9 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 	static class DropCandidateHolder {
 		int position;
 		TextView textLabel;
-		//ImageView imageIcon;
+        TextView textDescription;
+
+        //ImageView imageIcon;
       //  View slideView;
         View slideContainer;
 	}
