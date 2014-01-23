@@ -87,7 +87,7 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
         ColoredBoxDropCandidate dc = (ColoredBoxDropCandidate)view.getTag();
         dc.setLabel(dc.getLabel());
 
-        Log.d(TAG, " Adding " + dc.getLabel() + " back to list" );
+        Log.d(TAG, " Adding " + dc.getLabel() + " back to list, index= " + index );
         mItems.add(index, dc);
         adapter.notifyDataSetChanged();
 
@@ -128,7 +128,7 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
         //View slideContainer = view.findViewById(R.id.obj);
         TextView textLabel = (TextView)view.findViewById(R.id.text_label);
 
-        textLabel.setText("(" + obj.getLabel() + ")");
+        textLabel.setText("[" + obj.getLabel() + "]");
         int [] rgb = obj.getRgb();
 
        // textLabel.setBackgroundColor(Color.argb(255, rgb[0], rgb[1], rgb[2]));

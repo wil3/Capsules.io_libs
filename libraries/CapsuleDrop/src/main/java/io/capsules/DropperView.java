@@ -29,6 +29,8 @@ import java.util.TimerTask;
  *
  * A released view is one that has been released from the list
  *
+ *
+ *
  * Created by Wil Koch on 1/14/14.
  */
 public class DropperView extends RelativeLayout {
@@ -770,28 +772,7 @@ public class DropperView extends RelativeLayout {
         mLongFocusTimer.schedule(new LongFocusTask(), LONG_FOCUS_TIME);
         mTimerStarted = true;
     }
-    /**
-     * When the view is slide to the enabled position, start the mLongFocusTimer to determine if
-     * the user is over this view for a specified time. If so then release it from the
-     * list
-     */
-    private void onCandidateEnabled(View view){
 
-        setCandidateState(CandidateState.IN_ENABLED_POSITION);
-
-
-    }
-
-    /**
-     * Callback when the candidate is in the disabled position
-     * @param view
-     */
-    private void onCandidateDisabled(View view){
-       // mLongFocusTimer.cancel();
-        //mLongFocusTimer.purge();
-        //setCandidateState(CandidateState.IN_DISABLED_POSITION);
-
-    }
     private boolean isDrawerExtended(){
         return mLastLeftPosition == getWidth()-mDragView.getWidth();
     }
@@ -814,7 +795,7 @@ public class DropperView extends RelativeLayout {
 
         //Clean up
         listReset();
-
+        mFocusedDroppedView = null;
     }
     /**
      * Start off fresh
@@ -827,7 +808,7 @@ public class DropperView extends RelativeLayout {
 
     private boolean isDrawerOpen(){
 
-        Log.i(TAG, " drag view= " + mDragView.getLeft() + " w= " + getWidth());
+      //  Log.i(TAG, " drag view= " + mDragView.getLeft() + " w= " + getWidth());
         return mDragView.getLeft() == getWidth() - mDragView.getWidth();
     }
     private boolean openDrawer(){
@@ -888,10 +869,13 @@ public class DropperView extends RelativeLayout {
         final int xTest = getWidth() - (mDragView.getWidth()/2);
         ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
 
-        mFocusedListItemIndex = getListItemPosition(xTest, y);
+        updateFocusedListItemIndex(xTest,y);
+
         //mListView.setSelection(mFocusedListItemIndex);
         return listitemView;
     }
+
+
 
     /**
      * Determine which view in the list will be used to expand
@@ -902,9 +886,16 @@ public class DropperView extends RelativeLayout {
     private View getViewToExpand(int x, int y){
         final int xTest = getWidth() - (mDragView.getWidth()/2);
         ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
-        int childIndex = getListItemPosition(xTest, y);
+        updateFocusedListItemIndex(xTest, y);
+
+        int childIndex = mFocusedListItemIndex;//getListItemPosition(xTest, y);
+
+        //If child not found no view to expand
+if (childIndex == -1) return null;
+
         mLastExpandedViewIndex = childIndex;
 
+Log.d(TAG, "View index to expand " + childIndex);
         if (listitemView == null) return null;
 
         //If in the top half then we want the previous view to expand
@@ -934,7 +925,7 @@ public class DropperView extends RelativeLayout {
 
     }
 
-    private void updateFocusedListItem(int x, int y){
+    private void updateFocusedListItem2(int x, int y){
         //This is the top root list element that is defined when creaeting a layout for the row
         final int xTest = getWidth() - (mDragView.getWidth()/2);
         ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
@@ -942,8 +933,7 @@ public class DropperView extends RelativeLayout {
         //Can and only should have 1 child view
         if (listitemView.getChildCount() != 1) return;
 
-        mFocusedListItemIndex = getListItemPosition(xTest, y);
-
+       updateFocusedListItemIndex(xTest, y);
         //Close the previous one
         if (mLastEnabledCandidate != null) disableCandidate(mLastEnabledCandidate);
 
@@ -960,6 +950,12 @@ public class DropperView extends RelativeLayout {
 
     }
 
+    private void updateFocusedListItemIndex(int x, int y){
+        int focusedListItem;
+        if ((focusedListItem = getListItemPosition(x, y)) != -1){
+            mFocusedListItemIndex = focusedListItem;
+        }
+    }
     /**
      * Get the dropped view that has been released from thel ist, if it is under these coorridiates
      * @param x
@@ -1022,7 +1018,6 @@ public class DropperView extends RelativeLayout {
         moveDetachedView(mFocusedDroppedView, toLeft, toTop);
 
     }
-
     /**
      * Called after animation has finished
      */
@@ -1034,8 +1029,12 @@ public class DropperView extends RelativeLayout {
         quickCollapseListItemView(mLastExpandedView);
         //Remove the view
         removeView(mFocusedDroppedView);
+
         mFocusedDroppedView= null;
+
         mLastEnabledCandidate = null;
+        //reset();
+
     }
 
 
@@ -1047,18 +1046,44 @@ public class DropperView extends RelativeLayout {
        //mListView.removeView(mLastEnabledCandidate);
        //addView(mLastEnabledCandidate);
     if (mFocusedListItem == null) return;
-        if (mLastEnabledCandidate != null) quickDisableCandidate(mLastEnabledCandidate);
+     //   if (mLastEnabledCandidate != null)
+     disableCandidate(mLastEnabledCandidate, 0, new Animation.AnimationListener() {
+         @Override
+         public void onAnimationStart(Animation animation) {
+         }
 
-        mFocusedListItem.setVisibility(INVISIBLE);
+         @Override
+         public void onAnimationEnd(Animation animation) {
+                continueWithReleasingViewFromList();
+         }
+
+         @Override
+         public void onAnimationRepeat(Animation animation) {
+         }
+     });
+
+
+
+    }
+
+    private void continueWithReleasingViewFromList(){
+        //   mFocusedListItem.setVisibility(INVISIBLE);
         //mFocusedListItem.invalidate();
+
+        //Expand previous list item to look like its the space where we were
+        View listItemToExpand = mListView.getChildAt(mFocusedListItemIndex-1);
+        expandListItemView(listItemToExpand);
+        mLastExpandedView = listItemToExpand;
+
 
         View releasedView = mCallback.createReleasedView(mFocusedListItemIndex);
 
-closeDrawer();
+        closeDrawer();
 
-        mFocusedListItem.setVisibility(VISIBLE);
-        mCallback.onCandidateDropped(mFocusedListItemIndex,mLastEnabledCandidate);
+        //     mFocusedListItem.setVisibility(VISIBLE);
 
+        //This will rebuild the list
+        mCallback.onCandidateDropped(mFocusedListItemIndex,null);
 
         int leftMargin = getWidth() - mDragView.getWidth();
         int[] lt = new int[2];
@@ -1075,8 +1100,8 @@ closeDrawer();
         //Init off screen
         layoutParams.leftMargin = leftMargin;
         layoutParams.topMargin = topMargin;
-       // releasedView.setLeft(left);
-      //  releasedView.setTop(top);
+        // releasedView.setLeft(left);
+        //  releasedView.setTop(top);
 
         //Now add it
         addView(releasedView,layoutParams);
@@ -1084,53 +1109,94 @@ closeDrawer();
         mDroppedViews.add(releasedView);
         mFocusedDroppedView = releasedView;
 
+        mLastEnabledCandidate = null;
+    }
+    /**
+     * When the view is slide to the enabled position, start the mLongFocusTimer to determine if
+     * the user is over this view for a specified time. If so then release it from the
+     * list
+     */
+    private void onCandidateEnabled(View view){
 
-        /*
-        if (mCandidateSkeleton != null){
+        setCandidateState(CandidateState.IN_ENABLED_POSITION);
 
-            int[] xy = new int[2];
-            mLastEnabledCandidate.getLocationOnScreen(xy);
-            final int left = xy[0] - mLastEnabledCandidate.getWidth(); //it has slid over
-            final int top = xy[1] - getScreenOffset()[0];
 
-            final MotionEvent newEv = MotionEvent.obtainNoHistory(mLastKnownMotionEvent);
-            newEv.setAction(MotionEvent.ACTION_MOVE);
-            newEv.setLocation(left,top);
-
-            mCandidateSkeleton.dispatchTouchEvent(newEv);
-        }
-        */
     }
 
+    /**
+     * Callback when the candidate is in the disabled position
+     * @param view
+     */
+    private void onCandidateDisabled(View view){
+        Log.v(TAG, "On candidate disable");
+
+        // mLongFocusTimer.cancel();
+        //mLongFocusTimer.purge();
+        //setCandidateState(CandidateState.IN_DISABLED_POSITION);
+
+    }
 
     private void quickEnableCandidate(View view){
 
     }
-    private void quickDisableCandidate(View view){
-        if (view == null) return;
-        Log.v(TAG, "Quick disable candidate");
 
-        //Start where we left off...
-        final float start =  view.getWidth() * -1f;
-        //End at our resting place
-        final float end = 0f;
-        horizontalSlideAnimate(view,0, start, end);    }
     /**
      * Move view into the ready state
      * @param view
      */
-    private void enableCandidate(View view){
-
+    private void enableCandidate(final View view){
+if (mFocusedDroppedView != null) return;
         Log.v(TAG, "Enable candidate");
         //Slide the view to the left
         final float start = 0f;
         final float end = view.getWidth() * -1f;
 
+
+
+        Animation.AnimationListener listener = new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                onCandidateEnabled(view);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+            }
+        };
+
         //This is relative to where the view currently is
-        horizontalSlideAnimate(view,SLIDE_DURATION,start, end);
+        horizontalSlideAnimate(view,SLIDE_DURATION,start, end, listener);
     }
 
-    private void disableCandidate(View view){
+   // private void quickDisableCandidate(View view){
+   //     disableCandidate(view, 0);
+   // }
+    private void disableCandidate(final View view){
+
+        Animation.AnimationListener listener = new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation animation) {
+            }
+
+            @Override
+            public void onAnimationEnd(Animation animation) {
+                onCandidateDisabled(view);
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation animation) {
+            }
+        };
+
+
+        disableCandidate(view, SLIDE_DURATION,listener );
+    }
+    private void disableCandidate(final View view, int duration, Animation.AnimationListener listener){
+
 
         if (view == null) return;
         Log.v(TAG, "Disable candidate");
@@ -1139,9 +1205,11 @@ closeDrawer();
         final float start =  view.getWidth() * -1f;
         //End at our resting place
         final float end = 0f;
-        horizontalSlideAnimate(view,SLIDE_DURATION, start, end);
+
+        horizontalSlideAnimate(view,duration, start, end, listener);
+
     }
-    private void horizontalSlideAnimate(final View view, int duration, final float fromX, final float toX){
+        private void horizontalSlideAnimate(final View view, int duration, final float fromX, final float toX, Animation.AnimationListener listener){
         TranslateAnimation anim = new TranslateAnimation(
                 Animation.ABSOLUTE, fromX,
                 Animation.ABSOLUTE, toX ,
@@ -1152,29 +1220,9 @@ closeDrawer();
 
         //The animation does not actually change the position
         //of the view, it only changes the screen rendering
-        anim.setAnimationListener(new Animation.AnimationListener() {
-            @Override
-            public void onAnimationStart(Animation animation) {
-
+            if (listener != null){
+        anim.setAnimationListener(listener);
             }
-
-            @Override
-            public void onAnimationEnd(Animation animation) {
-                    if (toX < 0){
-
-
-
-                        onCandidateEnabled(view);
-                    } else {
-                        onCandidateDisabled(view);
-                    }
-            }
-
-            @Override
-            public void onAnimationRepeat(Animation animation) {
-
-            }
-        });
         view.startAnimation(anim);
     }
 
@@ -1208,8 +1256,9 @@ closeDrawer();
     }
 
     private int getListItemPosition(int x, int y){
+        int foundIndex = -1;
         final int childCount = mListView.getChildCount();
-        for (int i = 0; i<childCount; i++) {
+        for (int i = 0; i < childCount; i++) {
             final View child = mListView.getChildAt(i);
 
             DisplayMetrics dm = new DisplayMetrics();
@@ -1223,13 +1272,14 @@ closeDrawer();
             final int top = location[1]-topOffset;
             final int bottom = top + child.getHeight();
 
-          //  Log.d(TAG  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
-            if (x >= left && x < right &&
-                    y >= top && y < bottom) {
-                return i;//((DropArrayAdapter.DropCandidateHolder)child.getTag()).position;
+            Log.d(TAG  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
+            if (x >= left && x <= right &&
+                    y >= top && y <= bottom) {
+                foundIndex = i;
+                break;//((DropArrayAdapter.DropCandidateHolder)child.getTag()).position;
             }
         }
-        return -1;
+        return foundIndex;
     }
     private View getListItemAtPosition(int x, int y){
 
