@@ -2,6 +2,7 @@ package io.capsules;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.view.MotionEventCompat;
@@ -71,6 +72,7 @@ public class DropperView extends RelativeLayout {
         public View createReleasedView(int index);
         public void onCandidateEnabled(ViewGroup listitem);
         public void onCandidateDisable(ViewGroup listitem);
+        public int getListItemCount();
 
         public void onReset();
     }
@@ -86,8 +88,7 @@ public class DropperView extends RelativeLayout {
 
     public static int HOVER_SLOP = 40;
 
-    private static final String TAG_LIST = "listView";
-
+    public static int SCROLL_ACTIVATION_HEIGHT = 50;
 
     private CandidateState mCandidateState = CandidateState.NOT_STARTED;
 
@@ -187,14 +188,19 @@ public class DropperView extends RelativeLayout {
 
     private boolean mTimerStarted = false;
 
+    private int mListItemHeight;
+
     /**
      * Timer used to determine long touches
      */
     Timer mLongFocusTimer = new Timer();
 
 
+
     private int mDrawerResourceId;
     private int mReleasableResourceId;
+
+    private int mCurrentY;
 
     public DropperView(Context context) {
         this(context, null);
@@ -231,6 +237,11 @@ public class DropperView extends RelativeLayout {
         mDrawerResourceId = a.getResourceId(R.styleable.DropperView_drawerView, -1);
         if (mDrawerResourceId == -1){
             throw new IllegalArgumentException("You must define a drawer view");
+        }
+
+        mListItemHeight = a.getDimensionPixelOffset(R.styleable.DropperView_releasableViewHeight, -1);
+        if (mListItemHeight == -1){
+            throw new IllegalArgumentException("You must define the release view height");
         }
 
         if (a != null){
@@ -369,11 +380,13 @@ public class DropperView extends RelativeLayout {
 
     public void setList(ListView list){
         mListView = list;
+
+
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b){
-        Log.d(TAG, "onLayout");
+        Log.v(TAG, "onLayout");
 
         updateRealPosition(mFocusedDroppedView);
 
@@ -419,6 +432,7 @@ public class DropperView extends RelativeLayout {
     protected void onFinishInflate() {
 
         mDragView = (RelativeLayout)findViewWithTag("dragView");
+
 
 
             mLastLeftPosition = getWidth() - mDragView.getWidth();
@@ -478,7 +492,9 @@ public class DropperView extends RelativeLayout {
 
 
     /**
-     * Intercept if the drawer is out or if teh candidate is released and being placed
+     * Intercept if:
+     * (1) The drawer is out and a touch is on the drawer
+     * (2) A released view is touched
      * @param ev
      * @return
      */
@@ -513,8 +529,9 @@ public class DropperView extends RelativeLayout {
                     mFocusedDroppedView = view;
                     Log.d(TAG, "On touch Down Intercept, dropped view hit");
                     interceptTap = true;
+                } else {
+                    interceptTap = mDragHelper.isViewUnder(mDragView, (int) x, (int) y);
                 }
-               // interceptTap = mDragHelper.isViewUnder(mDragView, (int) x, (int) y);
                 break;
             }
 
@@ -593,41 +610,35 @@ public class DropperView extends RelativeLayout {
 
 
                 mLastKnownMotionEvent = ev;
+                mCurrentY = (int) y;
+
+
                 Log.v(TAG, "expanded index=" + mLastExpandedViewIndex );
 
-/*
-                final float dx = x - mInitialMotionX;
 
-                int findX = getWidth() - (mDragView.getWidth() / 2);
-                View v = mDragHelper.findTopChildUnder((int)x,(int)y);
-                if (v == null) break;
+                int firstVisiblePosition = mListView.getFirstVisiblePosition();
+                int lastVisiblePosition = mListView.getLastVisiblePosition();
+                ScrollingState scrollDirection = determineScrollDirection((int)x, (int)y);
 
-                Log.v(TAG, "On touch x=" + (int) x + " y=" + (int) y + " dx= " + dx );
-
-                if (v.getTag() != null){
-                    String tag = (String)v.getTag();
-                    if (tag.equals("scrolldown")){
-                        Log.d(TAG,"Scroll down...");
-
-                        //If we are not already scrolling...
-                        if (mScrollingState != ScrollingState.STATE_SCROLLING_DOWN){
-                            mScrollingState = ScrollingState.STATE_SCROLLING_DOWN;
-                            //Keep scrolling until we are out
-
-                            mScrollIndex =0;
-                            scrollDown();
-                        }
-                    } else {
-                        mScrollingState = ScrollingState.STATE_SCROLLING_IDLE;
+                //Are we already scrolling?
+                if (scrollDirection == ScrollingState.STATE_SCROLLING_UP && firstVisiblePosition > 0){
+                    if (mScrollingState != ScrollingState.STATE_SCROLLING_UP){
+                        mScrollIndex = firstVisiblePosition;
+                        mScrollingState = ScrollingState.STATE_SCROLLING_UP;
+                        scrollUp();
                     }
+
+                } else if (scrollDirection == ScrollingState.STATE_SCROLLING_DOWN && lastVisiblePosition < mCallback.getListItemCount()){
+                    if (mScrollingState != ScrollingState.STATE_SCROLLING_DOWN) {
+                        Log.d(TAG, " Last visible position=" + lastVisiblePosition);
+                        mScrollIndex = lastVisiblePosition;
+                        mScrollingState = ScrollingState.STATE_SCROLLING_DOWN;
+                        scrollDown();
+                    }
+
                 } else {
                     mScrollingState = ScrollingState.STATE_SCROLLING_IDLE;
-
                 }
-
-*/
-             //   updateFocusedListItem((int) x, (int) y);
-
 
 
                 if (isHoveredVerticalEdge(ViewDragHelper.EDGE_RIGHT, (int) x) && !isDrawerOpen()){
@@ -649,22 +660,14 @@ public class DropperView extends RelativeLayout {
                         closeDrawer();
                     }
 
-                    ViewGroup viewToExpand = (ViewGroup)getViewToExpand((int) x, (int) y);
-
-                    if (viewToExpand != null){
-                        if (mLastExpandedView != null) collapseListItemView(mLastExpandedView);
-                        Log.d(TAG, "Expanding View");
-                        expandListItemView(viewToExpand);
-                        mLastExpandedView = viewToExpand;
-                        //  handled = true;
-                    }
+                   attemptExpand((int)x,(int)y);
 
                     //Let the touch event be forwarded to the actual focused view
                     return false;
 
                 } else {
 
-                    Log.d(TAG, "Touch, move not by focused released view");
+                    Log.v(TAG, "Touch, move not by focused released view");
                     //Handle the removable of the item from the list to be dropped
                     if (!isUnderEnabledCandidate((int) x, (int) y)){
                         if (mTimerStarted){
@@ -708,7 +711,7 @@ public class DropperView extends RelativeLayout {
 
         //true if event handled
         boolean handled = mCandidateState != CandidateState.NOT_STARTED || (mViewState == ViewState.START);
-        Log.d(TAG, "Returning " + handled + " from touch event");
+        Log.v(TAG, "Returning " + handled + " from touch event");
 
 
         return handled;//;//isViewUnder && isViewHit(mDragView, (int) x, (int) y) ;
@@ -716,37 +719,33 @@ public class DropperView extends RelativeLayout {
 
     }
 
+    private ScrollingState determineScrollDirection(int x, int y){
 
-    /**
-     * Expand the list item so a released view can be added to it
-     * @param view
-     */
-    private void expandListItemView(final View view ){
+        //If touching top
 
-        RelativeLayout.LayoutParams layoutParams = ( RelativeLayout.LayoutParams)mDragView.getLayoutParams();
-        Log.v(TAG, "Expand list view dragview l=" + layoutParams.leftMargin + " r=" + layoutParams.rightMargin);
+       //
 
-        layoutParams.rightMargin = 0;
-        mDragView.setLayoutParams(layoutParams);
-/*
-        final int newLeftMargin = 50;
+        int[] xy = new int[2];
+        mDragView.getLocationOnScreen(xy);
 
-        Animation a = new Animation() {
+        int left = xy[0];
+        int right = getWidth();
+        int top = xy[1] - getScreenOffset()[0]; //Subtract screen because x,y is only for the view, not screen
+        int bottom = top + mDragView.getHeight();
 
-            @Override
-            protected void applyTransformation(float interpolatedTime, Transformation t) {
-               int padding = (int)(newLeftMargin * interpolatedTime);
-                view.setPadding(0,0,0,padding);
+        ScrollingState state = ScrollingState.STATE_SCROLLING_IDLE;
+        if (left <= x && x <= right){
 
+            if (top <= y && y <= top + SCROLL_ACTIVATION_HEIGHT){
+                state = ScrollingState.STATE_SCROLLING_UP;
+            } else if (bottom - SCROLL_ACTIVATION_HEIGHT <= y && y <= bottom){
+                state = ScrollingState.STATE_SCROLLING_DOWN;
             }
-        };
+        }
 
-        view.startAnimation(a);
-*/
-        int bottomPadding  = (mLastEnabledCandidate == null) ? mFocusedDroppedView.getHeight() : mLastEnabledCandidate.getHeight();
-        view.setPadding(0,0,0,bottomPadding);
-
+        return state;
     }
+
     private void collapseListItemView(View view){
         view.setPadding(0,0,0,0);
     }
@@ -927,6 +926,8 @@ public class DropperView extends RelativeLayout {
      */
     private View getFocusedListItem(int x, int y){
         final int xTest = getWidth() - (mDragView.getWidth()/2);
+       int pos = mListView.pointToPosition(x,y);
+
         ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
 
         updateFocusedListItemIndex(xTest,y);
@@ -936,9 +937,48 @@ public class DropperView extends RelativeLayout {
     }
 
 
+    private void attemptExpand(int x, int y){
+
+        final int xTest = getWidth() - (mDragView.getWidth()/2);
+        ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
+
+        int wantedPosition =  mListView.getPositionForView(listitemView);//getListIndexByView(listitemView);
+
+        //If child not found no view to expand
+        if (wantedPosition == -1){
+            Log.w(TAG, " Index could not be found for view " + listitemView);
+            return;
+        }
+        if (listitemView == null){
+            Log.w(TAG, "List item could not be found at position x=" + xTest + " y=" + y);
+            return;
+        }
+
+        if (mLastExpandedView != null) collapseListItemView(mLastExpandedView);
+Log.d(TAG, " attempting to expand x=" + x + " y=" + y);
+        //TOP HALF,padding on the top
+        if (listitemView.getTop() <= y && listitemView.getTop() + listitemView.getHeight()/2 >= y){
+            listitemView.setPadding(0,mListItemHeight,0,0);
+
+        } else { //Bottom half, padding on the bottom
+
+            listitemView.setPadding(0,0,0,mListItemHeight);
+
+        }
+
+
+        mLastExpandedView = listitemView;
+        mLastExpandedViewIndex = wantedPosition;
+
+
+
+            //  handled = true;
+
+    }
 
     /**
-     * Determine which view in the list will be used to expand
+     * Determine which view in the list will be used to expand when we are carrying a view to try and
+     * place it back in the list
      * @param x
      * @param y
      * @return
@@ -946,28 +986,113 @@ public class DropperView extends RelativeLayout {
     private View getViewToExpand(int x, int y){
         final int xTest = getWidth() - (mDragView.getWidth()/2);
         ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
-        updateFocusedListItemIndex(xTest, y);
+      //  updateFocusedListItemIndex(xTest, y);
 
-        int childIndex = mFocusedListItemIndex;//getListItemPosition(xTest, y);
+        int wantedPosition =  mListView.getPositionForView(listitemView);//getListIndexByView(listitemView);
 
         //If child not found no view to expand
-if (childIndex == -1) return null;
-
-        mLastExpandedViewIndex = childIndex;
-
-Log.d(TAG, "View index to expand " + childIndex);
-        if (listitemView == null) return null;
-
-        //If in the top half then we want the previous view to expand
-        if (listitemView.getTop() <= y && listitemView.getTop() + listitemView.getHeight()/2 >= y){
-
-            if (childIndex > 0){
-                childIndex -= 1;
-                listitemView = (ViewGroup)mListView.getChildAt(childIndex);
-            }
-
+        if (wantedPosition == -1){
+            Log.w(TAG, " Index could not be found for view " + listitemView);
+            return null;
         }
-        return listitemView;
+        if (listitemView == null){
+            Log.w(TAG, "List item could not be found at position x=" + xTest + " y=" + y);
+            return null;
+        }
+
+        if (wantedPosition == 0){ //its the first item so we need to expand from the top
+            //TOP HALF,
+            if (listitemView.getTop() <= y && listitemView.getTop() + listitemView.getHeight()/2 >= y){
+
+                return listitemView;
+            }
+        } else {
+            //TOP HALF,
+            if (listitemView.getTop() <= y && listitemView.getTop() + listitemView.getHeight()/2 >= y){
+
+
+            } else { //Bottom half, expand next
+                if (wantedPosition <  mCallback.getListItemCount()-1){
+                    wantedPosition += 1;
+                    return (ViewGroup)getViewByPosition(wantedPosition);
+
+                } else {
+
+                }
+
+            }
+        }
+
+        return null;
+    }
+
+
+    private View getViewByPosition(int wantedPosition){
+        int firstPosition = mListView.getFirstVisiblePosition() - mListView.getHeaderViewsCount(); // This is the same as child #0
+        int wantedChild = wantedPosition - firstPosition;
+// Say, first visible position is 8, you want position 10, wantedChild will now be 2
+// So that means your view is child #2 in the ViewGroup:
+        if (wantedChild < 0 || wantedChild >= mListView.getChildCount()) {
+            Log.w(TAG, "Unable to get view for desired position, because it's not being displayed on screen.");
+            return null;
+        }
+// Could also check if wantedPosition is between listView.getFirstVisiblePosition() and listView.getLastVisiblePosition() instead.
+        View wantedView = mListView.getChildAt(wantedChild);
+        return wantedView;
+    }
+
+    /**
+     * Expand the list item so a released view can be added to it
+     * @param view
+     */
+    private void expandListItemView(final View view ){
+
+        RelativeLayout.LayoutParams layoutParams = ( RelativeLayout.LayoutParams)mDragView.getLayoutParams();
+        Log.v(TAG, "Expand list view dragview l=" + layoutParams.leftMargin + " r=" + layoutParams.rightMargin);
+
+        layoutParams.rightMargin = 0;
+        mDragView.setLayoutParams(layoutParams);
+/*
+        final int newLeftMargin = 50;
+
+        Animation a = new Animation() {
+
+            @Override
+            protected void applyTransformation(float interpolatedTime, Transformation t) {
+               int padding = (int)(newLeftMargin * interpolatedTime);
+                view.setPadding(0,0,0,padding);
+
+            }
+        };
+
+        view.startAnimation(a);
+*/
+
+        //If view is last in the list
+       // if (mListView.getPositionForView(view) == 0){
+       //     view.setPadding(0,0,0,mListItemHeight);
+
+        //} else {
+            view.setPadding(0,mListItemHeight,0,0);
+      //  }
+
+        mLastExpandedView = view;
+        mLastExpandedViewIndex = mListView.getPositionForView(view);
+
+    }
+    private int getListIndexByView(View view){
+        int foundIndex = -1;
+        final int childCount = mCallback.getListItemCount();
+        for (int i = 0; i < childCount; i++) {
+            final View child = mListView.getChildAt(i);
+            if (child.equals(view)){
+                foundIndex = i;
+                break;
+
+            }
+        }
+
+        return foundIndex;
     }
 
     /**
@@ -986,35 +1111,18 @@ Log.d(TAG, "View index to expand " + childIndex);
 
     }
 
-    private void updateFocusedListItem2(int x, int y){
-        //This is the top root list element that is defined when creaeting a layout for the row
-        final int xTest = getWidth() - (mDragView.getWidth()/2);
-        ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
-        if (listitemView == null || listitemView.equals(mFocusedListItem)) return;
-        //Can and only should have 1 child view
-        if (listitemView.getChildCount() != 1) return;
-
-       updateFocusedListItemIndex(xTest, y);
-        //Close the previous one
-        if (mLastEnabledCandidate != null) disableCandidate(mLastEnabledCandidate);
-
-
-        View child = listitemView.getChildAt(0);
-        enableCandidate(child);
-
-        mLastEnabledCandidate = child;
-
-        mFocusedListItem = listitemView;
-        Log.d(TAG, "List item " + mFocusedListItemIndex);
-      //  listView.
-
-
-    }
 
     private void updateFocusedListItemIndex(int x, int y){
         int focusedListItem;
-        if ((focusedListItem = getListItemPosition(x, y)) != -1){
-            mFocusedListItemIndex = focusedListItem;
+
+        final int xTest = getWidth() - (mDragView.getWidth()/2);
+        ViewGroup listitemView = (ViewGroup)getListItemAtPosition(xTest, y);
+        int wantedPosition =  mListView.getPositionForView(listitemView);//getListIndexByView(listitemView);
+
+        if (wantedPosition != -1){
+            mFocusedListItemIndex = wantedPosition;
+        } else {
+            Log.w(TAG, "No list item at x=" + x + " y=" + y);
         }
     }
     /**
@@ -1072,8 +1180,10 @@ Log.d(TAG, "View index to expand " + childIndex);
 
     private void addViewToList(){
         int toLeft = getWidth()  - mFocusedDroppedView.getWidth();
-        int toTop = mLastExpandedView.getTop() + mFocusedDroppedView.getHeight();
-        Log.v(TAG, "Action up, snapping view back l=" + toLeft + " t=" + toTop);
+        //Because the view is expanded with padding from next view
+        int toTop = (mLastExpandedView.getPaddingBottom() == 0) ? mLastExpandedView.getTop() :
+                mLastExpandedView.getTop() + mListItemHeight; //relative to list view
+        Log.v(TAG, "Action up, snapping view back l=" + toLeft + " t=" + toTop + " t padding=" + mLastExpandedView.getPaddingTop() + " b padding=" + mLastExpandedView.getPaddingBottom());
 
         //Move the view into position
         moveDetachedView(mFocusedDroppedView, toLeft, toTop);
@@ -1083,9 +1193,11 @@ Log.d(TAG, "View index to expand " + childIndex);
      * Called after animation has finished
      */
     private void continueWithAddingReleasedViewToList(){
-        //Now actually add it to the list but index+1 because when adding to a list
-        //it is added before the location
-        mCallback.onCandidateAdded(mLastExpandedViewIndex + 1, mFocusedDroppedView);
+        //Now actually add it to the list and determine where it should go in the list
+        //Look at the padding to see which side it is on, if padding on the bottom then add after the expanded row
+        int listPosition = (mLastExpandedView.getPaddingTop() == 0) ? mLastExpandedViewIndex + 1 : mLastExpandedViewIndex;
+        mCallback.onCandidateAdded(listPosition, mFocusedDroppedView);
+
         //The view is added to the list so collapse
         quickCollapseListItemView(mLastExpandedView);
         //Remove the view
@@ -1132,9 +1244,11 @@ Log.d(TAG, "View index to expand " + childIndex);
         //mFocusedListItem.invalidate();
 
         //Expand previous list item to look like its the space where we were
-        View listItemToExpand = mListView.getChildAt(mFocusedListItemIndex-1);
+        Log.d(TAG,"Expanding view before releasing view index=" + mFocusedListItemIndex);
+        int i = (mFocusedListItemIndex == 0) ? mFocusedListItemIndex + 1: mFocusedListItemIndex;
+        View listItemToExpand =getViewByPosition(mFocusedListItemIndex);
         expandListItemView(listItemToExpand);
-        mLastExpandedView = listItemToExpand;
+        //mLastExpandedView = listItemToExpand;
 
 
         View releasedView = mCallback.createReleasedView(mFocusedListItemIndex);
@@ -1181,6 +1295,9 @@ Log.d(TAG, "View index to expand " + childIndex);
         Log.v(TAG, "On candidate enable");
 
         setCandidateState(CandidateState.IN_ENABLED_POSITION);
+
+        final int xTest = getWidth() - (mDragView.getWidth()/2);
+        updateFocusedListItemIndex(xTest, mCurrentY);
 
 
         mCallback.onCandidateEnabled(mFocusedListItem);
@@ -1256,7 +1373,7 @@ if (mFocusedDroppedView != null) return;
         };
 
 
-        disableCandidate(view, SLIDE_DURATION,listener );
+        disableCandidate(view, SLIDE_DURATION, listener);
     }
     private void disableCandidate(final View view, int duration, Animation.AnimationListener listener){
 
@@ -1289,10 +1406,14 @@ if (mFocusedDroppedView != null) return;
         view.startAnimation(anim);
     }
 
+    /**
+     *
+     */
     private void scrollDown(){
 
-        /*
-        if (mScrollingState == ScrollingState.STATE_SCROLLING_DOWN && mScrollIndex < mListAdapter.getCount()){
+        Log.v(TAG, "Scroll down state = " + mScrollingState + " index= "  + mScrollIndex);
+        //Recursively scroll until the we no longer want to scroll or we reach  the end
+        if (mScrollingState == ScrollingState.STATE_SCROLLING_DOWN && mScrollIndex <= mCallback.getListItemCount()){
 
             mListView.smoothScrollToPosition(mScrollIndex++);
 
@@ -1303,7 +1424,28 @@ if (mFocusedDroppedView != null) return;
                 }
             }, SCROLL_DELAY);
 
-        } */
+        }
+
+    }
+    /**
+     *
+     */
+    private void scrollUp(){
+
+        //Recursively scroll until the we no longer want to scroll or we reach  the end
+        if (mScrollingState == ScrollingState.STATE_SCROLLING_UP && mScrollIndex >= 0){
+
+            mListView.smoothScrollToPosition(mScrollIndex--);
+
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    scrollUp();
+                }
+            }, SCROLL_DELAY);
+
+        }
+
     }
 
 
@@ -1318,9 +1460,15 @@ if (mFocusedDroppedView != null) return;
                 screenY >= viewLocation[1] && screenY < viewLocation[1] + view.getHeight();
     }
 
+    /**
+     * Given a location
+     * @param x
+     * @param y
+     * @return
+
     private int getListItemPosition(int x, int y){
         int foundIndex = -1;
-        final int childCount = mListView.getChildCount();
+        final int childCount = mCallback.getListItemCount();
         for (int i = 0; i < childCount; i++) {
             final View child = mListView.getChildAt(i);
 
@@ -1335,7 +1483,7 @@ if (mFocusedDroppedView != null) return;
             final int top = location[1]-topOffset;
             final int bottom = top + child.getHeight();
 
-            Log.d(TAG  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
+            //Log.d(TAG  , "X=" + x + " Y= " + y + " l " + left + " r " + right + " t " + top + " b " + bottom);
             if (x >= left && x <= right &&
                     y >= top && y <= bottom) {
                 foundIndex = i;
@@ -1344,6 +1492,15 @@ if (mFocusedDroppedView != null) return;
         }
         return foundIndex;
     }
+     */
+
+    /**
+     * Only can get the list item if it is being displayed, if scrolled and items arent displayed they will not be analyzed
+     * @param x
+     * @param y
+     * @return
+     */
+    //TODO this is going to cause poor performance, redo
     private View getListItemAtPosition(int x, int y){
 
         int topOffset = getScreenOffset()[0];
@@ -1354,7 +1511,8 @@ if (mFocusedDroppedView != null) return;
 
 
             int [] location  = new int[2];
-            child.getLocationInWindow(location);
+          //  child.getLocationInWindow(location);
+            child.getLocationOnScreen(location);
             final int left = location[0];
             final int right = location[0] + child.getWidth();
             final int top = location[1]-topOffset;
@@ -1492,7 +1650,7 @@ if (mFocusedDroppedView != null) return;
                 newLeft = mLastLeftPosition;
             }
 
-            Log.d(TAG, "clampViewPositionHorizontal newleft " + newLeft + "," + dx);
+            Log.v(TAG, "clampViewPositionHorizontal newleft " + newLeft + "," + dx);
 
             return newLeft;
 
@@ -1538,4 +1696,7 @@ if (mFocusedDroppedView != null) return;
         }
     };
 
-    }
+
+
+
+}

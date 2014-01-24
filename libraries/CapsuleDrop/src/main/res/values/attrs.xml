@@ -4,5 +4,6 @@
     <declare-styleable name="DropperView">
         <attr name="drawerView" format="reference"/>
         <attr name="releasableView" format="reference"/>
+        <attr name="releasableViewHeight" format="dimension"/>
     </declare-styleable>
 </resources>

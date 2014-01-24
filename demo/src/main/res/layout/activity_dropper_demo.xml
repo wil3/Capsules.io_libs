@@ -7,6 +7,7 @@
     android:layout_height="match_parent"
     capsules:releasableView="@+id/candidate"
     capsules:drawerView="@+id/drawer"
+    capsules:releasableViewHeight="50dp"
     >
 
 

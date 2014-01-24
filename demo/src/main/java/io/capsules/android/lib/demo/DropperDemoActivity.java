@@ -88,7 +88,7 @@ public class DropperDemoActivity extends FragmentActivity implements DropperView
         ColoredBoxDropCandidate dc = (ColoredBoxDropCandidate)view.getTag();
         dc.setLabel(dc.getLabel());
 
-        Log.d(TAG, " Adding " + dc.getLabel() + " back to list, index= " + index );
+        Log.d(TAG, " Adding (" + dc.getLabel() + ") back to list, at index= " + index );
         mItems.add(index, dc);
         adapter.notifyDataSetChanged();
 
@@ -161,6 +161,11 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
     }
 
     @Override
+    public int getListItemCount() {
+        return mItems.size();
+    }
+
+    @Override
     public void onReset() {
         if (mLastEnabledListItem != null) mLastEnabledListItem.setVisibility(View.GONE);
 
@@ -168,7 +173,7 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
 
     private void buildItemList(){
         Log.i(getClass().getName(),"Building data list");
-        for (int i=0; i< 10;i++){
+        for (int i=0; i< 30;i++){
             ColoredBoxDropCandidate dc = new ColoredBoxDropCandidate();
             dc.setLabel("" + i);
             int [] rgb = {50 * i, 10 * i, 50 * i};
