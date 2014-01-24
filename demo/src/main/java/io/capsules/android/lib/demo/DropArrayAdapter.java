@@ -23,7 +23,6 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 	private Context mContext;
 	private int mViewResourceId;
 	private List<ColoredBoxDropCandidate> mObjects;
-	//protected ImageLoader imageLoader = ImageLoader.getInstance();
 	private TextView mBtnSize;
     private int _xDelta;
     private int _yDelta;
@@ -94,10 +93,6 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 		int position;
 		TextView textLabel;
         TextView textDescription;
-
-        //ImageView imageIcon;
-      //  View slideView;
-        View slideContainer;
 	}
 	
 }

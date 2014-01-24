@@ -14,22 +14,15 @@
 
     <include layout="@layout/item_description"
         android:id="@+id/des"
-        android:layout_width="90dp"
-        android:layout_height="wrap_content"
+        android:layout_width="100dp"
+        android:layout_height="50dp"
         android:layout_alignParentLeft="true"
         />
-    <LinearLayout
-        android:id="@+id/scrolling"
-        android:layout_width="60dp"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:background="@null"
-        android:layout_toRightOf="@id/des"
-        ></LinearLayout>
+
 
 
     <include layout="@layout/draggable_view"
-             android:layout_toRightOf="@id/scrolling"
+             android:layout_toRightOf="@id/des"
 
         android:layout_width="50dp"
         android:layout_height="50dp"

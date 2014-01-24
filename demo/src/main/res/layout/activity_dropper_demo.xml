@@ -63,17 +63,21 @@
             </RelativeLayout>
     -->
 
+
+    <!-- The width must be fixd to the width of a list item
+            android:layout_marginRight="-220dp"
+
+    -->
     <RelativeLayout
         android:id="@id/drawer"
         android:tag="dragView"
-        android:layout_width="250dp"
+        android:layout_width="200dp"
         android:layout_height="match_parent"
         android:background="#0FF"
 
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_marginLeft="0dp"
-        android:layout_marginRight="-250dp"
         >
         <ListView
             android:id="@+id/mylist"
