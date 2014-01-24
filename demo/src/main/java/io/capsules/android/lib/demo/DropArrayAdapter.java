@@ -77,7 +77,7 @@ public class DropArrayAdapter extends ArrayAdapter<ColoredBoxDropCandidate> {
 
            holder.textDescription.setText(item.getmDescription());
            int [] rgb = item.getRgb();
-           row.setBackgroundColor(Color.argb(255, position * 50, position * 10, position * 50));
+         //  row.setBackgroundColor(Color.argb(255, position * 50, position * 10, position * 50));
 
 		   return row;
 

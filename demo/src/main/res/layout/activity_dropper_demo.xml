@@ -73,7 +73,7 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_marginLeft="0dp"
-        android:layout_marginRight="0dp"
+        android:layout_marginRight="-250dp"
         >
         <ListView
             android:id="@+id/mylist"
