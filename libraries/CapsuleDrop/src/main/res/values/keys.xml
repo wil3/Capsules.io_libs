@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
+
     Copyright 2014 Capsules LLC
 
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +15,12 @@
     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
     See the License for the specific language governing permissions and
     limitations under the License.
+
 -->
+
 
 <resources>
 
-    <declare-styleable name="DropperView">
-        <attr name="drawerView" format="reference"/>
-        <attr name="releasableView" format="reference"/>
-        <attr name="releasableViewHeight" format="dimension"/>
-    </declare-styleable>
+    <item name="key_beforeLayout" type="id" />
+
 </resources>

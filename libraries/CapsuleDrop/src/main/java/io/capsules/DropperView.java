@@ -1,3 +1,22 @@
+
+/*
+ *
+ *      Copyright 2014 Capsules LLC
+ *
+ *       Licensed under the Apache License, Version 2.0 (the "License");
+ *       you may not use this file except in compliance with the License.
+ *       You may obtain a copy of the License at
+ *
+ *       http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *       Unless required by applicable law or agreed to in writing, software
+ *       distributed under the License is distributed on an "AS IS" BASIS,
+ *       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *       See the License for the specific language governing permissions and
+ *       limitations under the License.
+ */
+
+
 package io.capsules;
 
 import android.content.Context;
@@ -26,6 +45,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 /**
+ *
+ *
  * A candidate view is one that can potientially be removed from the list
  *
  * A released view is one that has been released from the list
@@ -50,6 +71,8 @@ public class DropperView extends RelativeLayout {
         STOP
     }
 
+
+
     /**
      * State of the focused item
      */
@@ -70,13 +93,15 @@ public class DropperView extends RelativeLayout {
 
         public View createReleasedView(int index);
         public void onCandidateEnabled(ViewGroup listitem);
+        public void onCandidateEnabledStart(ViewGroup listitem);
+
         public void onCandidateDisable(ViewGroup listitem);
         public int getListItemCount();
 
         public void onReset();
     }
 
-    public static int SLIDE_DURATION = 1000;
+    public static int SLIDE_DURATION = 500;
 
     /**
      * When scrolling occurs what is the delay before moving to the next list item
@@ -215,6 +240,8 @@ public class DropperView extends RelativeLayout {
         mDragHelper = ViewDragHelper.create(this, 1.0f,new DragHelperCallback());
         mDragHelper.setEdgeTrackingEnabled(ViewDragHelper.EDGE_RIGHT);
 
+        Log.d(TAG, "Velocity= " + mDragHelper.getMinVelocity());
+
         DisplayMetrics dm = new DisplayMetrics();
         ((WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay().getMetrics(dm);
         mDisplayWidth = dm.widthPixels;
@@ -248,65 +275,80 @@ public class DropperView extends RelativeLayout {
         }
     }
 
+
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b){
 
-//if (!changed) return;
-        updateRealPosition(mFocusedDroppedView);
+        final int count = getChildCount();
+
+        // These are the far left and right edges in which we are performing layout.
+        int leftPos = getPaddingLeft();
+        int rightPos = r - l - getPaddingRight();
 
 
-     //   int leftBeforeLayout = mDragView.getLeft();
-        RelativeLayout.LayoutParams layoutParams = ( RelativeLayout.LayoutParams)mDragView.getLayoutParams();
+        // These are the top and bottom edges in which we are performing layout.
+        final int parentTop = getPaddingTop();
+        final int parentBottom = b - t - getPaddingBottom();
 
-        Log.v(TAG, "onLayout drawer left= " + mDragView.getLeft() + " right margin= " + layoutParams.rightMargin + " drawer open? " + isDrawerOpen());
+        for (int i = 0; i < count; i++) {
+            final View child = getChildAt(i);
+            if (child.getVisibility() != GONE) {
+                final RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) child.getLayoutParams();
 
-/*
+                final int width = child.getMeasuredWidth();
+                final int height = child.getMeasuredHeight();
+
+                int childLeft = 0;
+                int childRight= 0;
+                int childTop= parentTop;
+                int childBottom= 0;
+                if (child.equals(mDragView)){
+                    if (mDrawerState == DrawerState.STOP){
+                        childLeft = getWidth();
+
+                    } else {
+                        childLeft = getWidth() - width;
+
+                    }
+                    childRight = childLeft + width;
+
+                    childBottom = childTop + height;
+
+                } else {
+                    Log.v(TAG, "onLayout margins left= " + lp.leftMargin + " top= " + lp.topMargin );
+                    Log.v(TAG, "onLayout left= " + child.getLeft() + " top= " + child.getTop());
+                    Object tag = child.getTag(R.id.key_beforeLayout);
+                    if (tag != null){
+                        boolean beforeLayout = (Boolean) tag;
+                        //This view is not in a layout yet so use the margins
+                        if (beforeLayout) {
+
+                            childLeft = lp.leftMargin;
+                            childTop = lp.topMargin;
 
 
-      //  if (isDrawerOpen()){
-        if (mDrawerState == DrawerState.START &&   layoutParams.rightMargin != 0){
-            layoutParams.rightMargin = 0;
-            Log.v(TAG, "onLayout drawer, setting right margin to 0");
-                    mDragView.setLayoutParams(layoutParams);
+                            child.setTag(R.id.key_beforeLayout, false);
+                        } else {
 
-        } else {
-           // layoutParams.rightMargin = mDragView.getWidth() * -1;
-        }
-        //Will this cause a recursive onLayout call?
-*/
+                           //Already in layout so only the left, right because it is changing by the drag
+                            childLeft = child.getLeft();
+                            childTop = child.getTop();
 
+                        }
+                    }
+                    childRight = childLeft + width;
+                    childBottom = childTop + height;
 
-        super.onLayout(changed, l,t,r,b);
+                }
 
-    //    mDragView.setLeft(leftBeforeLayout);
-        Log.v(TAG, "end onLayout drawer left= " + mDragView.getLeft() + " right margin= " + layoutParams.rightMargin + " drawer open? " + isDrawerOpen());
-
-    }
-
-
-    /**
-     * When chanigng the position by the offset when layout() is performed
-     * all the views will return back to the rest position. This will update the margin to place
-     */
-    private void updateRealPosition(View view){
-        if (view != null){
-
-            //TODO fix this dirty hack, when a view is just created and not added yet its l,r are 0
-            //
-            if (view.getLeft() == 0 && view.getRight() == 0) return;
-
-            if (view.getParent() instanceof RelativeLayout){
-                RelativeLayout.LayoutParams lParams = (RelativeLayout.LayoutParams) view.getLayoutParams();
-                lParams.leftMargin = view.getLeft();
-                lParams.topMargin = view.getTop();
-                Log.d(TAG, "Updating real position Left= " + view.getLeft() + " Top= " + view.getTop());
-                view.setLayoutParams(lParams);
-            } else {
-                Log.w(TAG, "Parent view must be of RelativeLayout when updating real position.");
+                // Place the child.
+                child.layout(childLeft, childTop,
+                        childRight,childBottom);
             }
         }
 
     }
+
     @Override
     protected void onFinishInflate() {
 
@@ -339,11 +381,8 @@ public class DropperView extends RelativeLayout {
      * @param view
      * @return
      */
-    //TODO Add this to interface so it can be customized
+    //TODO Add this logic to the view and skip the complexity of having to forward the events in the dispatcher
     private View addEventListenersToReleasedView(final View view){//}, int left, int top){
-
-
-        String txt = ((TextView)((ViewGroup)view).getChildAt(0)).getText().toString();
 
        // Log.v(TAG, "Setting listeners id=" + view.getId() + " l= " + left + " t= " + top) ;
 
@@ -378,9 +417,8 @@ public class DropperView extends RelativeLayout {
                 final int X = (int) event.getX();
                 final int Y = (int) event.getY();
                 final int action = MotionEventCompat.getActionMasked(event);
-                String txt = ((TextView)((ViewGroup)view).getChildAt(0)).getText().toString();
 
-                Log.v(TAG, "Released view onTouch action x=" + X + " y=" + Y + " txt=" + txt) ;
+                Log.v(TAG, "Released view onTouch action x=" + X + " y=" + Y ) ;
                 RelativeLayout.LayoutParams layoutParams = ( RelativeLayout.LayoutParams)view.getLayoutParams();
 
                 switch (event.getAction() & MotionEvent.ACTION_MASK) {
@@ -389,12 +427,17 @@ public class DropperView extends RelativeLayout {
 
                         mInitialMotionX = X;
                         mInitialMotionY = Y;
+
+                        //view.setTag(R.id.key_beforeLayout, true);
                         break;
                     case MotionEvent.ACTION_UP:
 
                         layoutParams.leftMargin = X - (view.getWidth()/2);
                         layoutParams.topMargin = Y - (view.getHeight()/2);
-                         view.setLayoutParams(layoutParams);
+
+                        Log.d(TAG, "****Released view onTouch UP  "+  layoutParams.leftMargin + " t=" +  layoutParams.topMargin );
+
+////////                        view.setLayoutParams(layoutParams);
 
                         //no longer focused
                         mFocusedDroppedView = null;
@@ -410,32 +453,11 @@ public class DropperView extends RelativeLayout {
                         view.offsetLeftAndRight(left);
                         view.offsetTopAndBottom(top);
 
-/*
-                        layoutParams.leftMargin = X - (view.getWidth()/2);
-                        layoutParams.topMargin = Y - (view.getHeight()/2);
-                        view.setLayoutParams(layoutParams);
-*/
-/*
-                        //TODO instead to detemrine where its coming from set a custom action or source or just make the parent
-                        //dispatch do the conversion
-                        if (mCandidateState != CandidateState.NOT_STARTED) { //forwarded event
-
-
-
-                        } else { //event handle  directly by view
-
-                            int dx = X - view.getLeft();//(int)mInitialMotionX;
-                            int dy = Y - view.getTop();//(int)mInitialMotionY;
-
-
- //TODO WHEN A NEW VEIW IS ADDED AND LAYOUT IS CALLED DO THE OFFSETS GET CLEARED?!?!
-                            view.offsetLeftAndRight(dx);
-                            view.offsetTopAndBottom(dy);
-                        }
-                        */
                         consumed = true;
                         break;
                 }
+
+                //Causes black streak is not present
                 DropperView.this.invalidate();
                 return consumed;
 
@@ -474,9 +496,8 @@ public class DropperView extends RelativeLayout {
             //If the event wasnt handled upstream pass it down
 
             if (mFocusedDroppedView != null && !handled){
-                String txt = ((TextView)((ViewGroup)mFocusedDroppedView).getChildAt(0)).getText().toString();
 
-                Log.v(TAG, "Dispatch " + action + " touch event to the skelton " + txt);
+                Log.v(TAG, "Dispatch " + action + " touch event to the skelton ");
                 // ev.setAction(MotionEvent.ACTION_MOVE);
 
                 final MotionEvent newEv = MotionEvent.obtainNoHistory(ev);
@@ -512,8 +533,6 @@ public class DropperView extends RelativeLayout {
         }
         boolean intercept = mDragHelper.shouldInterceptTouchEvent(ev);
 
-
-
         final float x = ev.getX();
         final float y = ev.getY();
         boolean interceptTap = false;
@@ -529,6 +548,7 @@ public class DropperView extends RelativeLayout {
                 //See if there is a dropped view at this location
                 final View view;
                 if ((view = getDroppedView((int)x,(int)y)) != null){
+
                     mFocusedDroppedView = view;
                     Log.d(TAG, "On touch Down Intercept, dropped view hit");
                     interceptTap = true;
@@ -536,30 +556,6 @@ public class DropperView extends RelativeLayout {
                     interceptTap = mDragHelper.isViewUnder(mDragView, (int) x, (int) y);
                 }
                 break;
-            }
-
-            case MotionEvent.ACTION_MOVE: {
-                final float adx = Math.abs(x - mInitialMotionX);
-                final float ady = Math.abs(y - mInitialMotionY);
-                final int slop = mDragHelper.getTouchSlop();
-
-                int findX = getWidth() - (mDragView.getWidth() / 2);
-                View v = mDragHelper.findTopChildUnder(findX,(int)y);
-                Log.d(TAG, "On touch Intercept");
-
-
-             //   if (mCandidateDetached){
-              //      return true;
-             //   }
-
-                //check out the slop, if change too great cancel.
-                // if the vertical change is greater than the horizontal change also cancel
-               /* if (adx > slop && ady > adx) {
-                    Log.d(TAG,"Cancelling event");
-
-                    mDragHelper.cancel();
-                    return false;
-                }*/
             }
         }
 
@@ -606,9 +602,6 @@ public class DropperView extends RelativeLayout {
                     reset();
 
                 }
-               // } else {
-               //     closeDrawer();
-               // }
 
                 break;
             }
@@ -877,7 +870,7 @@ public class DropperView extends RelativeLayout {
 
         Log.i(TAG, "is Drawer Open? " + mDragView.getLeft() + " ?= " + (getWidth() - mDragView.getWidth()));
 
-        //TODO fix me, this should be true to the actual state, in this return it coul be in progress
+        //TODO fix me, this should be true to the actual state, in this return it could be in progress
         //return mDragView.getLeft() == getWidth() - mDragView.getWidth();
         return mDrawerState != DrawerState.STOP;
     }
@@ -891,7 +884,7 @@ public class DropperView extends RelativeLayout {
     }
     private boolean closeDrawer(){
 
-        Log.v(TAG, "Closing drawer");
+        Log.v(TAG, "Closing drawer, state=" + mDragHelper.getViewDragState());
 
         final int leftBound = getWidth();
 
@@ -904,7 +897,6 @@ public class DropperView extends RelativeLayout {
     private boolean slideTo(int finalX){
         if (mDragHelper.smoothSlideViewTo(mDragView, finalX, mDragView.getTop())) {
 
-            //TODO could this be cause the onlayout calls so frequenctly?
             ViewCompat.postInvalidateOnAnimation(this); //Invalidate on the next animation frame
             return true;
         }
@@ -1053,7 +1045,10 @@ Log.d(TAG, " attempting to expand x=" + x + " y=" + y);
         Log.v(TAG, "Expand list view dragview l=" + layoutParams.leftMargin + " r=" + layoutParams.rightMargin);
 
         layoutParams.rightMargin = 0;
-        mDragView.setLayoutParams(layoutParams);
+//////        mDragView.setLayoutParams(layoutParams);
+
+
+
 /*
         final int newLeftMargin = 50;
 
@@ -1292,7 +1287,8 @@ mHandler.postDelayed(new Runnable() {
         //  releasedView.setTop(top);
 
         //Now add it
-        addView(releasedView,layoutParams);
+        releasedView.setTag(R.id.key_beforeLayout, true);
+        addView(releasedView, layoutParams);
         //  mListAdapter.notifyDataSetChanged();
         mDroppedViews.add(releasedView);
         mFocusedDroppedView = releasedView;
@@ -1349,6 +1345,8 @@ if (mFocusedDroppedView != null) return;
         Animation.AnimationListener listener = new Animation.AnimationListener() {
             @Override
             public void onAnimationStart(Animation animation) {
+
+                mCallback.onCandidateEnabledStart((ViewGroup)view);
             }
 
             @Override
@@ -1567,7 +1565,8 @@ if (mFocusedDroppedView != null) return;
             Log.d(TAG,"Edget touched");
 
             mDrawerState = DrawerState.START;
-            //Makes it so it can slide out
+
+            //When the edge is touched lets slide out half way
            if ( mDragHelper.smoothSlideViewTo(mDragView, getWidth()-mDragView.getWidth()/2, 0)){
                ViewCompat.postInvalidateOnAnimation(getRootView());
            }
@@ -1590,12 +1589,9 @@ if (mFocusedDroppedView != null) return;
         @Override
         public void onViewReleased(View releasedChild, float xvel, float yvel) {
 
-
             int top = getPaddingTop();
 
             Log.v(TAG, "onViewRelease  l=" + getWidth() + " t=" + top);
-//TODO need this?
-            //mDragHelper.settleCapturedViewAt(getWidth(), top);
 
         }
 
