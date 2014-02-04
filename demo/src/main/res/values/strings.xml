@@ -12,5 +12,6 @@
 
     <string name="title_activity_dropper_demo">DropperDemoActivity</string>
     <string name="title_activity_drop_switch_demo">DropSwitchDemoActivity</string>
+    <string name="title_activity_demo_slidelayout">DemoSlidelayoutActivity</string>
 
 </resources>

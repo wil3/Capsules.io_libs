@@ -1,1 +1,1 @@
-include ':demo', ':libraries:CapsuleColorEditor', ':CapsuleDrop', ':libraries:CapsuleDrop'
+include ':demo', ':libraries:CapsuleColorEditor', ':CapsuleDrop', ':libraries:CapsuleDrop', 'libraries:Slidelayout'

@@ -32,6 +32,10 @@
             android:name="io.capsules.android.lib.demo.DropSwitchDemoActivity"
             android:label="@string/title_activity_drop_switch_demo" >
         </activity>
+        <activity
+            android:name="io.capsules.android.lib.demo.slidelayout.DemoSlidelayoutActivity"
+            android:label="@string/title_activity_demo_slidelayout" >
+        </activity>
     </application>
 
 </manifest>

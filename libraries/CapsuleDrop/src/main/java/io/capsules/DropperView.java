@@ -97,7 +97,7 @@ public class DropperView extends RelativeLayout {
 
         public void onCandidateDisable(ViewGroup listitem);
         public int getListItemCount();
-
+        public void onListItemFocused(ViewGroup listitem);
         public void onReset();
     }
 
@@ -692,7 +692,7 @@ public class DropperView extends RelativeLayout {
                     if (focusedListItem != null && !focusedListItem.equals(mFocusedListItem)){
 
 
-
+                            mCallback.onListItemFocused(focusedListItem);
 
                             //If there was a previous enabled one disable it
                             if (mLastEnabledCandidate != null) disableCandidate(mLastEnabledCandidate);

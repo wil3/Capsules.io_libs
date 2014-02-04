@@ -14,7 +14,7 @@
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:layout_marginLeft="50dp"
-        android:background="#EEE"
+        android:background="#80B7FF"
         android:orientation="vertical"
         android:gravity="center"
         android:tag="dragView"

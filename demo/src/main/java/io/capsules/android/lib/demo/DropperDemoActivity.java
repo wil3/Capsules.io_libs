@@ -162,18 +162,17 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
     @Override
     public void onCandidateEnabled(ViewGroup listitem) {
 
-     //   if (mLastEnabledListItem != null) mLastEnabledListItem.setVisibility(View.GONE);
-
+/*
         TextView desc = (TextView)listitem.findViewById(R.id.description);
         Log.d(TAG,"Description to display " + desc.getText());
         desc.setVisibility(View.VISIBLE);
-
         mLastEnabledListItem = desc;
+        */
     }
 
     @Override
     public void onCandidateEnabledStart(ViewGroup listitem) {
-        if (mLastEnabledListItem != null) mLastEnabledListItem.setVisibility(View.GONE);
+      //  if (mLastEnabledListItem != null) mLastEnabledListItem.setVisibility(View.GONE);
 
     }
 
@@ -186,6 +185,15 @@ Log.d(getClass().getName(), "View ID=" + view.getId());
     @Override
     public int getListItemCount() {
         return mItems.size();
+    }
+
+    @Override
+    public void onListItemFocused(ViewGroup listitem) {
+        if (mLastEnabledListItem != null) mLastEnabledListItem.setVisibility(View.GONE);
+
+        TextView desc = (TextView)listitem.findViewById(R.id.description);
+        desc.setVisibility(View.VISIBLE);
+        mLastEnabledListItem = desc;
     }
 
     @Override

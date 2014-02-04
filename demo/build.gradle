@@ -36,4 +36,5 @@ dependencies {
     compile 'com.android.support:support-v4:18.0.+'
     compile project(':libraries:CapsuleColorEditor')
     compile project(':libraries:CapsuleDrop')
+    compile project(':libraries:Slidelayout')
 }

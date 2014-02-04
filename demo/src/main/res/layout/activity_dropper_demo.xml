@@ -80,6 +80,7 @@
 
     <!-- The width must be fixd to the width of a list item
 
+        android:background="#0FF"
 
     -->
 
@@ -103,7 +104,7 @@
         android:layout_alignParentRight="true"
         android:layout_marginLeft="0dp"
 
-        android:background="#0FF"
+        android:background="@null"
         >
         <ListView
             android:id="@+id/mylist"
