@@ -6,11 +6,11 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 
 import io.capsules.android.lib.demo.R;
 import io.capsules.slidelayout.SlideLayout;
@@ -43,77 +43,102 @@ public class DemoSlidelayoutActivity extends FragmentActivity {
 
     class Page1 extends Fragment implements SlideLayout.ScrollOverflowListener, SlideLayout.ScrollViewListener{
 
-        SlideLayout mSlideLayout;
-        private static final float SCALED_SCROLL = 1f;
-        private int mTotalPixels;
+        private SlideLayout mSlideLayout;
+        public static final float SCALED_SCROLL = 1f;
+        private int mFakeLeftOffset;
+        private View mCoverView;
+        private View mBodyView;
+        /**
+         * The invisible view above the header used for layout reasons
+         */
+        private View mSpacerView;
+
+        private boolean mIsCollapsed = true;
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 
-            View rootView = inflater.inflate(R.layout.fragment_demo_slidelayout_page1,
+            final View rootView = inflater.inflate(R.layout.fragment_demo_slidelayout_page1,
                     container, false);
             mSlideLayout = (SlideLayout)rootView.findViewById(R.id.slidelayout);
-            mSlideLayout.setOnScrollOverflowListner(this);
-            mSlideLayout.setMainContentView(R.id.content);
-            mSlideLayout.setHeaderView(R.id.header);
-            mSlideLayout.setBodyView(R.id.body);
-            mSlideLayout.setFillerView(R.id.filler);
-            mSlideLayout.setCoverView(R.id.image_wrapper);
+            mSlideLayout.setScrollOverflowListener(this);
             mSlideLayout.setScrollViewListener(this);
+
+            //We need to dynamicaly determine the height of the spacer so the header is at the bottom
+            mSpacerView = rootView.findViewById(R.id.spacer);
+            mSpacerView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (mIsCollapsed) {
+                        mSlideLayout.smoothScrollTo(0,rootView.getHeight()/2);
+                        mIsCollapsed = false;
+                    } else {
+                        mSlideLayout.smoothScrollTo(0,0);
+                        mIsCollapsed = true;
+                    }
+                }
+            });
+            ViewTreeObserver vto = rootView.getViewTreeObserver();
+            vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    if (rootView.getViewTreeObserver().isAlive()) {
+                        // only need to calculate once, so remove listener
+                        rootView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                    }
+                    ViewGroup.LayoutParams params = mSpacerView.getLayoutParams();
+                    params.height = rootView.getHeight();
+                    mSpacerView.setLayoutParams(params);
+
+                }
+            });
+
+           mCoverView = rootView.findViewById(R.id.cover);
+           mBodyView = rootView.findViewById(R.id.body);
+
             return rootView;
         }
 
         @Override
-        public void onStartOverflow() {
+        public void onStartOverflow(SlideLayout.ScrollResting restingPosition) {
 
-            //if (mViewPager.isFakeDragging()) return;
             boolean ok = mViewPager.beginFakeDrag();
-            mTotalPixels = 0;
-            Log.d(TAG, "start fake " + ok);
+            mFakeLeftOffset = 0;
+            Log.d(TAG, "Start fake drag? " + ok);
 
         }
-
         @Override
-        public void onStopOverflow() {
-            Log.d(TAG, "end fake");
+        public void onStopOverflow(SlideLayout.ScrollResting restingPosition) {
+            Log.v(TAG, "Ending fake drag");
             if (mViewPager.isFakeDragging()){
                 mViewPager.endFakeDrag();
             }
         }
-
         @Override
-        public void onTopScrollOverflow(float offset) {
+        public void onTopScrollOverflow(float percent) {
+            fakeDragBy(percent);
+        }
+        @Override
+        public void onBottomScrollOverflow(float percent) {
+            fakeDragBy(-percent);
+        }
+        private void fakeDragBy(float offset){
+            Log.v(TAG, "Fake drag by " + offset);
             float pixels =  mViewPager.getWidth() * offset * SCALED_SCROLL;
-            Log.d(TAG, "Page viewer  " + pixels);
-
-            mTotalPixels += pixels;
-            mSlideLayout.setLeftOffset(mTotalPixels);
+            mFakeLeftOffset += pixels;
+            mSlideLayout.setFakeLeftOffset(Math.abs(mFakeLeftOffset));
             mViewPager.fakeDragBy(-pixels);
         }
 
         @Override
-        public void onBottomScrollOverflow(float offset) {
-
-        }
-
-        @Override
-        public void onScrollChanged(View scrollView, int x, int y, int oldx, int oldy) {
-            View cover = findViewById(R.id.image_wrapper);
-
-            View root = findViewById(R.id.rootview);
-            View body = findViewById(R.id.body);
+        public void onScrollChanged(View scrollView, int x, int y, int oldX, int oldY) {
 
             int[] xy = new int[2];
-            body.getLocationInWindow(xy);
+            mBodyView.getLocationInWindow(xy);
 
-
-            int newHeight = xy[1];// +  root.getPaddingTop();
-         //   if (newHeight <= root.getHeight()){
-                ViewGroup.LayoutParams params = cover.getLayoutParams();
+            int newHeight = xy[1];
+                ViewGroup.LayoutParams params = mCoverView.getLayoutParams();
                 params.height =  newHeight;
-
-              //  Log.d(TAG, " cover h " + newHeight);
-                cover.setLayoutParams(params);
-         //   }
+                mCoverView.setLayoutParams(params);
         }
     }
 
